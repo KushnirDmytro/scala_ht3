@@ -1,6 +1,6 @@
 import org.scalacheck.Properties
 import org.scalacheck.Prop.forAll
-import rationalFancyOperators.Rational
+import practice_lec_RationalNumbers.rationalFancyOperators.Rational
 
 object RationlaProps extends Properties("String") {
 

@@ -1,5 +1,4 @@
-import lec_6_IntegerSetTree.{Empty, NonEmpty}
-import sun.invoke.empty.Empty
+package IntSet
 
 /**
   * Created by d1md1m on 25.05.17.

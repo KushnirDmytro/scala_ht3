@@ -1,4 +1,4 @@
-import lec_6_IntegerSetTree.{Empty, IntSet, NonEmpty}
+import IntSet.lec_6_IntegerSetTree.{Empty, IntSet, NonEmpty}
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Properties
 import org.scalacheck.Arbitrary.arbitrary

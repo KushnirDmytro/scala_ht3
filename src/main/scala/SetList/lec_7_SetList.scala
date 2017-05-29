@@ -99,7 +99,7 @@ def nth[A](n:Int, xs:List[A]):Option[A] = xs match {
     println(sum(list456))
     println(leftSum(list456))
     println(reverse(list456))
-    println(foldRightViaFoldLeft(list123, 0))
+    //println(foldRightViaFoldLeft(list123, 0))
 
   }
 }

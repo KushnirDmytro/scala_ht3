@@ -1,5 +1,6 @@
 package HT_3_ITSELF
 
+
 //Func oriented decomposition session
 
 /**
@@ -17,7 +18,7 @@ object TinyLangV1 {
 
 
     def isReduciable :Boolean = this match {
-      case bo:BinaryOper => true
+      case bo:BinaryOper[Boolean] => true
       case Var(s: String) => true
       case _ => false
     }
@@ -30,42 +31,69 @@ object TinyLangV1 {
     }
 */
 
-    def eval: Int = this match {
+    def eval:Int  = this match {
       case Number(n) => n
-      case Sum(lOp: Expr, rOp: Expr) => lOp.eval + rOp.eval
-      case Prod(lOp: Expr, rOp: Expr) => lOp.eval * rOp.eval
+      case bo:BinaryOper[Int] => bo.map(bo.lOp.eval,bo.rOp.eval)
       case Var(s: String) => env(s)
     }
 
     def show: String = this match {
       case Number(n) => n.toString
-      case Sum(lOp: Expr, rOp: Expr) => lOp.show +" + "+ rOp.show
-      case Prod(lOp: Expr, rOp: Expr) => (lOp, rOp) match  {
-        case (Sum(_, _), Sum(_, _))  => "(" + lOp.show + ")" + " * " + "(" + rOp.show +")"
-        case (Sum(_, _), _ ) => "(" + lOp.show + ")" + " * " +  rOp.show
-        case (_, Sum(_, _) ) =>  lOp.show  + " * " + "(" + rOp.show +")"
-        case (_, _ ) =>  lOp.show  + " * " +   rOp.show
+      case dj:Disj[_] => dj.lOp.show + dj.opStr + dj.rOp.show
+      case cj:Conj[_] => (cj.lOp, cj.rOp) match  {
+        case (djl:Disj[_], djr:Disj[_])  => "(" + cj.lOp.show + ")" + cj.opStr + "(" + cj.rOp.show +")"
+        case (djl:Disj[_], _ ) => "(" + cj.lOp.show + ")" + cj.opStr +  cj.rOp.show
+        case (_, djr:Disj[_] ) =>  cj.lOp.show  + cj.opStr + "(" + cj.rOp.show +")"
+        case (_, _ ) =>  cj.lOp.show  + cj.opStr + cj.rOp.show
       }
       case Var(s: String) => s
     }
 
   }
 
-  trait BinaryOper extends Expr
+  trait BinaryOper[T] extends Expr {
+    def lOp:Expr
+    def rOp:Expr
+    def map(a:T, b:T):T
+    def opStr:String
+  }
 
-  case class Number(n: Int) extends Expr {
+  trait Conj[T] extends BinaryOper[T]
+  trait Disj[T] extends BinaryOper[T]
+
+  trait Unar[T] extends Expr{
+    def Unit:T
+    def Nihil:T
   }
-  case class Bool(b: Boolean) extends Expr {
+
+  case class Number(n: Int) extends Unar[Int] {
+    override def Unit = 1
+    override def Nihil = 0
   }
-  case class Var(s: String) extends Expr {
+
+  case class Bool(b: Boolean) extends Unar[Boolean] {
+    override def Unit = true
+    override def Nihil = false
+  }
+
+  case class Var(s: String) extends Unar[Any] {
+    override def Unit = AnyRef
+    override def Nihil: Unit = None
   }
 
   case class Less(lOp: Expr, rOp: Expr) extends Expr {
   }
 
-  case class Prod (lOp:Expr, rOp:Expr) extends BinaryOper{}
+  case class Prod (lOp:Expr, rOp:Expr) extends Conj[Int]{
+    def map(a: Int, b: Int): Int = a * b
+    def opStr: String = " * "
+  }
 
-  case class Sum (lOp:Expr, rOp:Expr) extends BinaryOper{}
+  case class Sum (lOp:Expr, rOp:Expr) extends Disj[Int]{
+    def map(a: Int, b: Int): Int = a + b
+    def opStr: String = " + "
+  }
+
 
   case class Error() extends Expr {
   }
@@ -90,12 +118,15 @@ object TinyLangV1 {
 
   def main(args: Array[String]): Unit = {
 
-    println(Sum(Number(5), Number(4)).eval)
+    println(Sum(Number(5), Number(4)).show)
 
     println(Sum(Number(5), Number(4)).eval)
 
-      println( Prod(Number(5),
+    println( Prod(Number(5),
       Sum(Var("a"), Number(-3))).show)
+
+    println( Prod(Number(5),
+      Sum(Var("a"), Number(-3))).eval)
 
     println( Prod(Sum(Var("a"), Number(-3)) ,Number(5) ).show)
 

@@ -1,4 +1,5 @@
 package HT_3_ITSELF
+
 //Func oriented decomposition session
 
 /**
@@ -6,18 +7,36 @@ package HT_3_ITSELF
   */
 
 
-object TinyCalc_FunctionalAbstraction {
+object TinyLangV1 {
 
   var env =  Map("a" -> 2, "b" -> 3)
 
 
+
   trait Expr {
+
+
+    def isReduciable :Boolean = this match {
+      case bo:BinaryOper => true
+      case Var(s: String) => true
+      case _ => false
+    }
+
+/*
+    def reductionStep : Expr = this match {
+      case Sum(lOp: Expr, rOp: Expr)   => lOp.eval + rOp.eval
+      case Prod(lOp: Expr, rOp: Expr) => lOp.eval * rOp.eval
+      case Var(s: String) => env(s)
+    }
+*/
+
     def eval: Int = this match {
       case Number(n) => n
       case Sum(lOp: Expr, rOp: Expr) => lOp.eval + rOp.eval
       case Prod(lOp: Expr, rOp: Expr) => lOp.eval * rOp.eval
       case Var(s: String) => env(s)
     }
+
     def show: String = this match {
       case Number(n) => n.toString
       case Sum(lOp: Expr, rOp: Expr) => lOp.show +" + "+ rOp.show
@@ -32,16 +51,42 @@ object TinyCalc_FunctionalAbstraction {
 
   }
 
+  trait BinaryOper extends Expr
+
   case class Number(n: Int) extends Expr {
+  }
+  case class Bool(b: Boolean) extends Expr {
   }
   case class Var(s: String) extends Expr {
   }
 
-  case class Prod(lOp: Expr, rOp: Expr) extends Expr {
+  case class Less(lOp: Expr, rOp: Expr) extends Expr {
   }
 
-  case class Sum(lOp: Expr, rOp: Expr) extends Expr {
+  case class Prod (lOp:Expr, rOp:Expr) extends BinaryOper{}
+
+  case class Sum (lOp:Expr, rOp:Expr) extends BinaryOper{}
+
+  case class Error() extends Expr {
   }
+
+  case class IfElse(IfOp: Expr, ElseOp: Expr, cond:Boolean) extends Expr {
+  }
+
+  final class Machine {
+
+    def run(expr: Expr):Expr = {
+      println(expr)
+
+      if (expr.isReduciable)
+        expr
+      //    run (expr.reductionStep)
+      else
+        expr
+    }
+
+  }
+
 
   def main(args: Array[String]): Unit = {
 
@@ -69,6 +114,7 @@ object TinyCalc_FunctionalAbstraction {
   }
 
 }
+
 
 
 

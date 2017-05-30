@@ -12,6 +12,18 @@ object TinyLangV1Attempt2 {
     * Created by d1md1m on 25.05.17.
     */
 
+  trait UnarOper extends Expr{
+    def value:Any
+  }
+
+  trait BinOper extends Expr{
+    def lOp: Expr
+    def rOp: Expr
+    def sign: String
+  } // Binary operations
+  trait Conj extends BinOper // Conjunctive operations
+  trait Disj extends BinOper // Disjunctive operations
+
   trait NumExpr extends Expr{
     override def eval: Int = this match {
       case Number(n) => n
@@ -27,32 +39,34 @@ object TinyLangV1Attempt2 {
     }
   }
 
-  case class Number(n: Int) extends NumExpr {
+  case class Number(value: Int) extends NumExpr with UnarOper{
   }
 
-  case class Var(s: String) extends Expr {
+  case class Var(value: String) extends Expr with UnarOper{
   }
 
-  case class Bool(b:Boolean) extends LogExpr{
+  case class Bool(value:Boolean) extends LogExpr with UnarOper{
   }
 
-  case class Prod(lOp: Expr, rOp: Expr) extends NumExpr {
+  case class ErrorExpr(value:String) extends Expr with UnarOper
+
+  case class Prod(lOp: Expr, rOp: Expr) extends NumExpr with Conj{
+    def sign = " * "
   }
 
-  case class Sum(lOp: Expr, rOp: Expr) extends NumExpr {
+  case class Sum(lOp: Expr, rOp: Expr) extends NumExpr with Disj{
+    def sign = " + "
   }
 
-  case class Less(lOp: Expr, rOp: Expr) extends LogExpr {
+  case class Less(lOp: Expr, rOp: Expr) extends LogExpr with Conj{
+    def sign = " < "
   }
 
-  case class ErrorExpr(msg:String) extends Expr
 
   trait Expr {
 
     def isReduciable :Boolean = this match {
-      case Prod(_,_) => true
-      case Sum(_,_) => true
-      case Less(_,_) => true
+      case bo:BinOper=> true
       case Var(s: String) => true
       case _ => false
     }
@@ -69,7 +83,6 @@ object TinyLangV1Attempt2 {
           if (lOp.isReduciable)  Sum(lOp.reductionStep, rOp)
           else if (rOp.isReduciable ) Sum(lOp,rOp.reductionStep)
           else Number(ne.eval)
-
       }
       case le:LogExpr=> le match {
         case Less(lOp: Expr, rOp: Expr) =>
@@ -95,18 +108,14 @@ object TinyLangV1Attempt2 {
 
 
       def show: String = this match {
-        case Number(n) => n.toString
-        case Bool(n) => n.toString
-        case Sum(lOp: Expr, rOp: Expr) => lOp.show +" + "+ rOp.show
-        case Less(lOp: Expr, rOp: Expr) => lOp.show +" < "+ rOp.show
-        case ErrorExpr(msg:String) => msg
-        case Prod(lOp: Expr, rOp: Expr) => (lOp, rOp) match  {
-          case (Sum(_, _), Sum(_, _))  => "(" + lOp.show + ")" + " * " + "(" + rOp.show +")"
-          case (Sum(_, _), _ ) => "(" + lOp.show + ")" + " * " +  rOp.show
-          case (_, Sum(_, _) ) =>  lOp.show  + " * " + "(" + rOp.show +")"
-          case (_, _ ) =>  lOp.show  + " * " +   rOp.show
+        case un:UnarOper => un.value.toString
+        case dj:Disj => dj.lOp.show + dj.sign + dj.rOp.show
+        case cj:Conj => (cj.lOp, cj.rOp) match  {
+          case (ldj:Disj, rdj:Disj)  => "(" + cj.lOp.show + ")" + cj.sign + "(" + cj.rOp.show +")"
+          case (ldj:Disj, _ )        => "(" + cj.lOp.show + ")" + cj.sign +  cj.rOp.show
+          case (_ , rdj:Disj )       =>  cj.lOp.show  + cj.sign + "(" + cj.rOp.show +")"
+          case (_, _ )               =>  cj.lOp.show + cj.sign +  cj.rOp.show
         }
-        case Var(s: String) => s
       }
 
     }
@@ -125,28 +134,6 @@ object TinyLangV1Attempt2 {
         expr
     }
   }
-
-
-
-
-
-
-
-  trait Term[T]
-  case class Lit(x: Int) extends Term[Int]
-  case class Succ(t: Term[Int]) extends Term[Int]
-  case class IsZero(t: Term[Int]) extends Term[Boolean]
-  case class If[T](c: Term[Boolean],
-                   t1: Term[T],
-                   t2: Term[T]) extends Term[T]
-
-  def eval[T](t: Term[T]): T = t match {
-    case Lit(n)        => n
-    case Succ(u)       => eval(u) + 1
-    case IsZero(u)     => eval(u) == 0
-    case If(c, u1, u2) => eval(if (eval(c)) u1 else u2)
-  }
-
 
 
 
@@ -196,13 +183,10 @@ object TinyLangV1Attempt2 {
     new Machine().run(Less(Bool(false),
       Sum(Var("a"), Number(-3))) )
 
-
     new Machine().run(Less(Less(Bool(false),
       Sum(Var("a"), Number(-3))), Number(2) ) )
 
-
   }
-
 
 }
 

@@ -77,7 +77,9 @@ object TinyLangV1Attempt2 {
         else if (rOp.isReduciable ) Less(lOp,rOp.reductionStep)
         else (lOp, rOp) match {
             case (lOp:NumExpr, rOp:NumExpr) => Bool(le.eval)
-            case _ => ErrorExpr("LogicalExpr [" +  le.show + "] failed to simplify")
+            case _ =>
+              println("LogicalExpr [" +  le.show + "] failed to simplify")
+              ErrorExpr("Err[" + le.show + "]")
           }
 
 
@@ -193,6 +195,10 @@ object TinyLangV1Attempt2 {
 
     new Machine().run(Less(Bool(false),
       Sum(Var("a"), Number(-3))) )
+
+
+    new Machine().run(Less(Less(Bool(false),
+      Sum(Var("a"), Number(-3))), Number(2) ) )
 
 
   }

@@ -7,7 +7,6 @@ import org.scalatest.prop.PropertyChecks.whenever
 
 object IntSetTreeProp extends Properties("IntSetTree") {
 
-
   def height(set : IntSet): Int = set match {
     case Empty =>
       0
@@ -37,6 +36,9 @@ object IntSetTreeProp extends Properties("IntSetTree") {
       NonEmpty(choose(-20, 20).sample.get, Empty, Empty),
       choose(1, 7).sample.get )
   }
+
+
+
 
 /*
   property("positive_height") =

@@ -84,7 +84,6 @@ object TinyLangV1Attempt2 {
       }
     }
 
-
     def reductionStep : Expr = this match {
 
       case bo:BinOper => bo match {

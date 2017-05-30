@@ -71,33 +71,50 @@ object TinyLangV1Attempt2 {
       case _ => false
     }
 
+    def OperReduce(l:Expr, r:Expr): Expr ={
+      this match {
+        case ne:NumExpr => ne match {
+          case Prod(_,_) => Prod(l, r)
+          case Sum(_,_) => Sum(l, r)
+        }
+        case le:LogExpr => le match  {
+          case Less(_,_) =>  Less(l, r)
+        }
+        case _ => ErrorExpr("LeftReduceError")
+      }
+    }
 
 
     def reductionStep : Expr = this match {
-      case ne:NumExpr=> ne match {
-        case Prod(lOp: Expr, rOp: Expr) =>
-          if (lOp.isReduciable)  Prod(lOp.reductionStep, rOp)
-          else if (rOp.isReduciable ) Prod(lOp,rOp.reductionStep)
-          else Number(ne.eval)
-        case Sum(lOp: Expr, rOp: Expr) =>
-          if (lOp.isReduciable)  Sum(lOp.reductionStep, rOp)
-          else if (rOp.isReduciable ) Sum(lOp,rOp.reductionStep)
-          else Number(ne.eval)
-      }
-      case le:LogExpr=> le match {
-        case Less(lOp: Expr, rOp: Expr) =>
-          if (lOp.isReduciable)  Less(lOp.reductionStep, rOp)
-        else if (rOp.isReduciable ) Less(lOp,rOp.reductionStep)
-        else (lOp, rOp) match {
-            case (lOp:NumExpr, rOp:NumExpr) => Bool(le.eval)
-            case _ =>
-              println("LogicalExpr [" +  le.show + "] failed to simplify")
-              ErrorExpr("Err[" + le.show + "]")
-          }
 
+      case bo:BinOper => bo match {
+        case ne:NumExpr => (ne.lOp, ne.rOp) match {
+          case (l:Expr,r:Expr) =>
+            if (l.isReduciable) OperReduce(l.reductionStep, r)
+            else if (r.isReduciable) OperReduce(l, r.reductionStep)
+            else (l,r) match {
+              case (l:NumExpr, r:NumExpr) => Number(ne.eval)
+              case (_,_) => println("NumericExpr [" +  ne.show + "] failed to simplify")
+                ErrorExpr("NumerOperError")
+            }
+        }
 
+        case le:LogExpr=> le match {
+          case Less(lOp: Expr, rOp: Expr) =>
+            if (lOp.isReduciable)  OperReduce(lOp.reductionStep, rOp)
+            else if (rOp.isReduciable ) OperReduce(lOp,rOp.reductionStep)
+            else (lOp, rOp) match {
+              case (lOp:NumExpr, rOp:NumExpr) => Bool(le.eval)
+              case _ =>
+                println("LogicalExpr [" +  le.show + "] failed to simplify")
+                ErrorExpr("LogicOperError")
+            }
+        }
       }
+
       case Var(s: String) => env(s)
+      case _ => println("ERROR: failed to infer kind of expr" + this.show)
+        ErrorExpr("UndefExpr")
     }
 
 

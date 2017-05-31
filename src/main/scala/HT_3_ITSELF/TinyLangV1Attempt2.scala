@@ -19,13 +19,13 @@ object TinyLangV1Attempt2 {
     def value:Any
   }
 
-  trait BinOper extends Expr{
+  trait ComposedOperation extends Expr{
     def lOp: Expr
     def rOp: Expr
     def sign: String
 
 
-    def BinOpMemberReduce(l:Expr, r:Expr): Expr = this match {
+    def ComposedOperMemberReduce(l:Expr, r:Expr): Expr = this match {
       case ne:NumExpr => ne match {
         case Prod(_,_) => Prod(l, r)
         case Sum(_,_) => Sum(l, r)
@@ -43,33 +43,14 @@ object TinyLangV1Attempt2 {
 
 
   } // Binary operations
-  trait Conj extends BinOper // Conjunctive operations
-  trait Disj extends BinOper // Disjunctive operations
+  trait Conj extends ComposedOperation // Conjunctive operations
+  trait Disj extends ComposedOperation // Disjunctive operations
 
   trait NumExpr extends Expr{
-    override def eval: Option[Int] = this match {
-      case Number(n) => Some[Int](n)
-      case Sum(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
-        case (l:Some[Int], r:Some[Int]) => Some[Int](l.get + r.get)
-        case (_,_) => None
-      }
-      case Prod(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
-        case (l:Some[Int], r:Some[Int]) => Some[Int](l.get * r.get)
-        case (_,_) => None
-      }
-      case _ => None
-    }
   }
 
   trait LogExpr extends Expr{
-    override def eval: Option[Boolean] = this match {
-      case Less(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
-        case (l:Some[Int], r:Some[Int]) => Some[Boolean](l.get < r.get)
-        case (_,_) => None
-      }
-      case Bool(b:Boolean) => Some[Boolean](b)
-      case _ => None
-    }
+
   }
 
   case class Number(value: Int) extends NumExpr with UnarOper{
@@ -103,7 +84,7 @@ object TinyLangV1Attempt2 {
   trait Expr {
 
     def isReduciable :Boolean = this match {
-      case bo:BinOper=> true
+      case bo:ComposedOperation=> true
       case Var(s: String) => true
       case _ => false
     }
@@ -128,9 +109,9 @@ object TinyLangV1Attempt2 {
 
 
     def reductionStep[T<:UnarOper] : Expr = this match {
-      case bo:BinOper =>
-        if (bo.lOp.isReduciable) bo.BinOpMemberReduce(bo.lOp.reductionStep, bo.rOp)
-        else  if (bo.rOp.isReduciable) bo.BinOpMemberReduce(bo.lOp, bo.rOp.reductionStep)
+      case bo:ComposedOperation =>
+        if (bo.lOp.isReduciable) bo.ComposedOperMemberReduce(bo.lOp.reductionStep, bo.rOp)
+        else  if (bo.rOp.isReduciable) bo.ComposedOperMemberReduce(bo.lOp, bo.rOp.reductionStep)
         else (bo.lOp,bo.rOp) match {
           case (l:T, r:T) => this.ReduceToUnar
           case (_,_) => ErrorExpr("Type missmatch")
@@ -141,10 +122,32 @@ object TinyLangV1Attempt2 {
     }
 
 
-      def eval: Any = this match {
-        case IfElse(cond, lOp, rOp) => this.reductionStep
-        case Var(s: String) => env(s)
+      def eval: Option[Any] = this match {
+        case IfElse(cond, lOp, rOp) => Some[Expr](this.reductionStep) //already produces error
+        case Var(s: String) => if (env.contains(s)) Some[Expr](env(s)) else None
+        case nu: NumExpr => nu match {
+          case Number(n) => Some[Int](n)
+          case Sum(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
+            case (l:Some[Int], r:Some[Int]) => Some[Int](l.get + r.get)
+            case (_,_) => None
+          }
+          case Prod(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
+            case (l:Some[Int], r:Some[Int]) => Some[Int](l.get * r.get)
+            case (_,_) => None
+          }
+          case _ => None
+        }
+        case le:LogExpr => le match {
+          case Less(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
+            case (l:Some[Int], r:Some[Int]) => Some[Boolean](l.get < r.get)
+            case (_,_) => None
+          }
+          case Bool(b:Boolean) => Some[Boolean](b)
+          case _ => None
+        }
+
       }
+
 
 
       def show: String = this match {

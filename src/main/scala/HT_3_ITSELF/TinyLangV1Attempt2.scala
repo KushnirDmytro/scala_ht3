@@ -23,6 +23,41 @@ object TinyLangV1Attempt2 {
     def lOp: Expr
     def rOp: Expr
     def sign: String
+
+
+    def BinOpMemberReduce(l:Expr, r:Expr): Expr = this match {
+      case ne:NumExpr => ne match {
+        case Prod(_,_) => Prod(l, r)
+        case Sum(_,_) => Sum(l, r)
+      }
+      case le:LogExpr => le match  {
+        case Less(_,_) =>  Less(l, r)
+      }
+      case IfElse(cond,_,_) => IfElse(cond,l, r)
+      case _ => ErrorExpr("BinOperReduceError")
+    }
+
+
+    def chooseReduction[T<:UnarOper](l: Expr, r: Expr):Expr = {
+        if (l.isReduciable) this.BinOpMemberReduce(l.reductionStep, r)
+        else  if (r.isReduciable) this.BinOpMemberReduce(l, r.reductionStep)
+        else (l,r) match {
+          case (l:T, r:T) => this.reduceByLevel
+          case (_,_) => ErrorExpr("Type missmatch")
+        }
+    }
+
+    def reduceByLevel:Expr = this match {
+      case lg:LogExpr => Bool(lg.eval.get)
+      case ne:NumExpr => Number(ne.eval) // TODO OPTIONAL RETURN HANDLING
+      case IfElse(cond, l, r) => cond.reductionStep match {
+        case rez:Bool => if (rez.value) l else  r
+        case _ => ErrorExpr("ErrorIfElseInferrence")
+      }
+      case _ => println("Unknown expression" + this.show)
+        ErrorExpr("Reduction fail")
+    }
+
   } // Binary operations
   trait Conj extends BinOper // Conjunctive operations
   trait Disj extends BinOper // Disjunctive operations
@@ -86,60 +121,11 @@ object TinyLangV1Attempt2 {
       case _ => false
     }
 
-    def BinOpReduce(l:Expr, r:Expr): Expr ={
-      this match {
-        case ne:NumExpr => ne match {
-          case Prod(_,_) => Prod(l, r)
-          case Sum(_,_) => Sum(l, r)
-        }
-        case le:LogExpr => le match  {
-          case Less(_,_) =>  Less(l, r)
-        }
-        case IfElse(cond,_,_) => IfElse(cond,l, r)
-        case _ => ErrorExpr("BinOperReduceError")
-      }
-    }
+
 
     def reductionStep : Expr = this match {
 
-      case bo:BinOper => bo match {
-        case ne:NumExpr => (ne.lOp, ne.rOp) match {
-          case (l:Expr,r:Expr) =>
-            if (l.isReduciable) BinOpReduce(l.reductionStep, r)
-            else if (r.isReduciable) BinOpReduce(l, r.reductionStep)
-            else (l,r) match {
-              case (l:NumExpr, r:NumExpr) => Number(ne.eval)
-              case (_,_) => println("NumericExpr [" +  ne.show + "] failed to simplify")
-                ErrorExpr("NumerOperError")
-            }
-        }
-
-        case le:LogExpr=> le match {
-          case Less(lOp: Expr, rOp: Expr) =>
-            if (lOp.isReduciable)  BinOpReduce(lOp.reductionStep, rOp)
-            else if (rOp.isReduciable ) BinOpReduce(lOp,rOp.reductionStep)
-            else (lOp, rOp) match {
-              case (lOp:NumExpr, rOp:NumExpr) =>
-                val OptRez:Option[Boolean] = le.eval
-                if (OptRez.isDefined) Bool(OptRez.get) else ErrorExpr("LogicOperError")
-              case _ =>
-                println("LogicalExpr [" +  le.show + "] failed to simplify")
-                ErrorExpr("LogicOperError")
-            }
-        }
-
-        case IfElse(cond, l, r) =>
-          if (l.isReduciable) BinOpReduce(l.reductionStep, r)
-          else if (r.isReduciable) BinOpReduce(l, r.reductionStep)
-          else cond.reductionStep match {
-            case rez:Bool => if (rez.value) l else  r
-            case _ => ErrorExpr("ErrorIfElseInferrence")
-          }
-
-
-
-      }
-
+      case bo:BinOper => bo.chooseReduction(bo.lOp, bo.rOp)
       case Var(s: String) => env(s)
       case _ => println("ERROR: failed to infer kind of expr" + this.show)
         ErrorExpr("UndefExpr")
@@ -218,14 +204,19 @@ object TinyLangV1Attempt2 {
       Sum(Var("a"), Number(-3))).eval)
 */
 
+    println("ASSUME a + -3 + a + -3")
     new Machine().run( Sum( Sum(Var("a"), Number(-3)) , Sum(Var("a"), Number(-3)) ))
 
+
+    println("ASSUME 5 * (a + -3)")
     new Machine().run(Prod(Number(5),
       Sum(Var("a"), Number(-3))) )
 
+    println("ASSUME 5 < (a + -3)")
     new Machine().run(Less(Number(5),
       Sum(Var("a"), Number(-3))) )
 
+    println("ASSUME false < (a + -3)")
     new Machine().run(Less(Bool(false),
       Sum(Var("a"), Number(-3))) )
 

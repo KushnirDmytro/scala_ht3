@@ -38,50 +38,37 @@ object TinyLangV1Attempt2 {
     }
 
 
-    def chooseReduction[T<:UnarOper](l: Expr, r: Expr):Expr = {
-        if (l.isReduciable) this.BinOpMemberReduce(l.reductionStep, r)
-        else  if (r.isReduciable) this.BinOpMemberReduce(l, r.reductionStep)
-        else (l,r) match {
-          case (l:T, r:T) => this.reduceByLevel
-          case (_,_) => ErrorExpr("Type missmatch")
-        }
-    }
 
-    def reduceByLevel:Expr = this match {
-      case lg:LogExpr => Bool(lg.eval.get)
-      case ne:NumExpr => Number(ne.eval) // TODO OPTIONAL RETURN HANDLING
-      case IfElse(cond, l, r) => cond.reductionStep match {
-        case rez:Bool => if (rez.value) l else  r
-        case _ => ErrorExpr("ErrorIfElseInferrence")
-      }
-      case _ => println("Unknown expression" + this.show)
-        ErrorExpr("Reduction fail")
-    }
+
+
 
   } // Binary operations
   trait Conj extends BinOper // Conjunctive operations
   trait Disj extends BinOper // Disjunctive operations
 
   trait NumExpr extends Expr{
-    override def eval: Int = this match {
-      case Number(n) => n
-      case Sum(lOp: NumExpr, rOp: NumExpr) => lOp.eval + rOp.eval
-      case Prod(lOp: NumExpr, rOp: NumExpr) => lOp.eval * rOp.eval
-      case _ => new Machine().run(this) match {
-        case Number(n:Int) => n
-        case _ => throw new Exception("Unexpected type (NOT INT) " + this.show )
+    override def eval: Option[Int] = this match {
+      case Number(n) => Some[Int](n)
+      case Sum(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
+        case (l:Some[Int], r:Some[Int]) => Some[Int](l.get + r.get)
+        case (_,_) => None
       }
+      case Prod(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
+        case (l:Some[Int], r:Some[Int]) => Some[Int](l.get * r.get)
+        case (_,_) => None
+      }
+      case _ => None
     }
   }
 
   trait LogExpr extends Expr{
     override def eval: Option[Boolean] = this match {
-      case Less(lOp: NumExpr, rOp: NumExpr) => Some[Boolean](lOp.eval < rOp.eval)
-      case Bool(b:Boolean) => Some[Boolean](b)
-      case _ => new Machine().run(this) match {
-        case Bool(b:Boolean) => Some[Boolean](b)
-        case _ => None //throw new Exception("Unexpected type (NOT BOOL) " + this.show )
+      case Less(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
+        case (l:Some[Int], r:Some[Int]) => Some[Boolean](l.get < r.get)
+        case (_,_) => None
       }
+      case Bool(b:Boolean) => Some[Boolean](b)
+      case _ => None
     }
   }
 
@@ -122,10 +109,32 @@ object TinyLangV1Attempt2 {
     }
 
 
+    def ReduceToUnar:Expr = this match {
+      case lg:LogExpr => lg.eval match {
+        case rez:Some[Boolean] => Bool(rez.get)
+        case _ => ErrorExpr("BoolCalculationFail")
+      }
+      case ne:NumExpr => ne.eval match {
+        case rez:Some[Int] => Number(rez.get)
+        case _ => ErrorExpr("NumberCalculationFail")
+      }
+      case IfElse(cond, l, r) => cond.reductionStep match {
+        case rez:Bool => if (rez.value) l else  r
+        case _ => ErrorExpr("ErrorIfElseInferrence")
+      }
+      case _ => println("Unknown expression" + this.show)
+        ErrorExpr("Reduction fail")
+    }
 
-    def reductionStep : Expr = this match {
 
-      case bo:BinOper => bo.chooseReduction(bo.lOp, bo.rOp)
+    def reductionStep[T<:UnarOper] : Expr = this match {
+      case bo:BinOper =>
+        if (bo.lOp.isReduciable) bo.BinOpMemberReduce(bo.lOp.reductionStep, bo.rOp)
+        else  if (bo.rOp.isReduciable) bo.BinOpMemberReduce(bo.lOp, bo.rOp.reductionStep)
+        else (bo.lOp,bo.rOp) match {
+          case (l:T, r:T) => this.ReduceToUnar
+          case (_,_) => ErrorExpr("Type missmatch")
+        }
       case Var(s: String) => env(s)
       case _ => println("ERROR: failed to infer kind of expr" + this.show)
         ErrorExpr("UndefExpr")
@@ -220,7 +229,13 @@ object TinyLangV1Attempt2 {
     new Machine().run(Less(Bool(false),
       Sum(Var("a"), Number(-3))) )
 
+    println("ASSUME false < (a + -3) < 2")
     new Machine().run(Less(Less(Bool(false),
+      Sum(Var("a"), Number(-3))), Number(2) ) )
+
+
+    println("ASSUME false + (a + -3) < 2")
+    new Machine().run(Sum(Less(Bool(false),
       Sum(Var("a"), Number(-3))), Number(2) ) )
 
     new Machine().run( IfElse(Less(Number(2), Bool(false)), Number(-1) ,  Number(-1) ) )

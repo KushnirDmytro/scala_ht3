@@ -7,7 +7,7 @@ import scala.runtime.Nothing$
 
 object TinyLangV1Attempt2 {
 
-  var env =  Map("a" -> Number(2), "b" -> Number(3))
+  var env =  Map("a" -> Number(2), "b" -> Number(3), "k" -> Bool(false))
 
 
 
@@ -38,10 +38,6 @@ object TinyLangV1Attempt2 {
     }
 
 
-
-
-
-
   } // Binary operations
   trait Conj extends ComposedOperation // Conjunctive operations
   trait Disj extends ComposedOperation // Disjunctive operations
@@ -56,7 +52,7 @@ object TinyLangV1Attempt2 {
   case class Number(value: Int) extends NumExpr with UnarOper{
   }
 
-  case class Var(value: String) extends Expr with UnarOper{
+  case class Var(value: String) extends NumExpr with LogExpr with UnarOper {
   }
 
   case class Bool(value:Boolean) extends LogExpr with UnarOper{
@@ -116,36 +112,36 @@ object TinyLangV1Attempt2 {
           case (l:T, r:T) => this.ReduceToUnar
           case (_,_) => ErrorExpr("Type missmatch")
         }
-      case Var(s: String) => env(s)
+      case Var(s: String) => if (env.contains(s)) env(s) else ErrorExpr("UndefinedVariable")
       case _ => println("ERROR: failed to infer kind of expr" + this.show)
         ErrorExpr("UndefExpr")
     }
 
 
-      def eval: Option[Any] = this match {
-        case IfElse(cond, lOp, rOp) => Some[Expr](this.reductionStep) //already produces error
-        case Var(s: String) => if (env.contains(s)) Some[Expr](env(s)) else None
-        case nu: NumExpr => nu match {
-          case Number(n) => Some[Int](n)
-          case Sum(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
-            case (l:Some[Int], r:Some[Int]) => Some[Int](l.get + r.get)
-            case (_,_) => None
-          }
-          case Prod(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
-            case (l:Some[Int], r:Some[Int]) => Some[Int](l.get * r.get)
-            case (_,_) => None
-          }
-          case _ => None
-        }
-        case le:LogExpr => le match {
-          case Less(lOp: NumExpr, rOp: NumExpr) => (lOp.eval,rOp.eval) match {
-            case (l:Some[Int], r:Some[Int]) => Some[Boolean](l.get < r.get)
-            case (_,_) => None
-          }
-          case Bool(b:Boolean) => Some[Boolean](b)
-          case _ => None
-        }
+      def eval[T]: Option[Any] = this match {
 
+        //TODO move down
+        case Var(s: String) => if (env.contains(s)) Some[Any](env(s).eval.getOrElse(None)) else None
+        case co: ComposedOperation => (co, co.lOp, co.rOp) match {
+          case (_, l: Var, _) => co.reductionStep.eval
+          case (_, _, r: Var) => co.reductionStep.eval
+          case (_, _, _) => (co, co.lOp.eval, co.rOp.eval) match {
+
+            case (Sum(l: NumExpr, r: NumExpr), lval: Some[Int], rval: Some[Int]) =>
+              Some[Int](lval.get + rval.get)
+            case (Prod(l: NumExpr, r: NumExpr), lval: Some[Int], rval: Some[Int]) =>
+              Some[Int](lval.get * rval.get)
+            case (Less(l: NumExpr, r: NumExpr), lval: Some[Int], rval: Some[Int]) =>
+              Some[Boolean](lval.get < rval.get)
+            case (IfElse(cond, lOp, rOp), lval: Expr, rval: Expr) => Some[Expr](this.reductionStep) //already produces error
+            case (_, _, _) => None
+          }
+        }
+          case uo: UnarOper => uo match {
+            case Number(n) => Some[Int](n)
+            case Bool(b: Boolean) => Some[Boolean](b)
+            case _ => None
+          }
       }
 
 
@@ -216,11 +212,32 @@ object TinyLangV1Attempt2 {
       Sum(Var("a"), Number(-3))).eval)
 */
 
+
+    println(Var("a").eval)
+
+    println(Var("Z").eval)
+
+    println(Less(Number(2), Bool(false)).eval)
+    println(IfElse(Less(Number(2), Bool(false)), Number(-1) ,  Number(-1) ).eval)
+
     println("ASSUME a + -3 + a + -3")
     new Machine().run( Sum( Sum(Var("a"), Number(-3)) , Sum(Var("a"), Number(-3)) ))
 
+    println(Var("a").eval)
 
-    println("ASSUME 5 * (a + -3)")
+    println(Sum(Number(1), Number(2)).eval)
+
+    println(Sum(Number(1), Bool(false)).eval)
+
+    println(Sum(Var("a"), Number(2)).eval)
+
+    println(Sum(Var("z"), Number(2)).eval)
+
+    println(Sum(Var("k"), Number(2)).eval)
+
+
+    println("ASSUME 5 * (a + -3) = " + Prod(Number(5), Sum(Var("a"), Number(-3))).eval )
+
     new Machine().run(Prod(Number(5),
       Sum(Var("a"), Number(-3))) )
 
@@ -238,8 +255,9 @@ object TinyLangV1Attempt2 {
 
 
     println("ASSUME false + (a + -3) < 2")
-    new Machine().run(Sum(Less(Bool(false),
+    new Machine().run(Sum(Sum(Bool(false),
       Sum(Var("a"), Number(-3))), Number(2) ) )
+
 
     new Machine().run( IfElse(Less(Number(2), Bool(false)), Number(-1) ,  Number(-1) ) )
 

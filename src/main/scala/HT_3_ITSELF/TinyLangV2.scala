@@ -182,7 +182,7 @@ object TinyLangV2 {
     }
 
     def reduce(expr: Expr, env:Map[String, Any]): Expr = {
-      println(expr.show)
+     // println(expr.show)
 
       if (expr.isReduciable)
         reduce(reductionStep(expr, env), env)

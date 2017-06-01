@@ -20,7 +20,6 @@ object TinyLangV2Test extends Properties("V2Test"){
   }
 
 
-  val env = Map("A" -> 1)
   /////////////////////////// EXPRESSIONS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
   property("Number does not reduce") =
     forAll { (n:Int, d:Int) =>
@@ -66,11 +65,188 @@ object TinyLangV2Test extends Properties("V2Test"){
       } else true
     }
 
+  val mach = new Machine()
+  val env = Map("A" -> 1)
+
+
+
+
+
+  // SUM ==============================================
+  property("Sum of two Numbers reduces to Number with their sum") =
+    forAll { (n:Int, k:Int) =>
+        Sum(Number(n), Number(k)).eval(env) == k + n
+        mach.reduce(Sum(Number(n), Number(k)), env) == Number(n+k)
+      Sum(Number(n), Number(k)).show == n.toString + " + " + k.toString
+      //} else true
+    }
+
+  property("Sum of Number and Bool does not reduce") =
+    forAll { (n:Int, b:Boolean) =>
+      Sum(Number(n), Bool(b)).eval(env) == None
+      mach.reduce(Sum(Number(n), Bool(b)), env) == ErrorExpr
+      Sum(Number(n), Bool(b)).show == n.toString + " + " + b.toString
+      //} else true
+    }
+
+  property("Sum of Bool and Number does not reduce") =
+    forAll { (n:Int, b:Boolean) =>
+      Sum( Bool(b), Number(n)).eval(env) == None
+      mach.reduce(Sum( Bool(b), Number(n)), env) == ErrorExpr
+      Sum(Bool(b), Number(n) ).show == b.toString + " + " + n.toString
+      //} else true
+    }
+
+
+  property("left Sum operand reduces if it is reducible and right is left unchanged") =
+    forAll { (n:Int, b:Boolean, k:Int) =>
+      Sum( Sum( Number(k), Number(n)), Number(n)).eval(env) == n + k + n
+      mach.reductionStep(Sum( Sum( Number(k), Number(n)), Number(n)), env) == Sum(Number(n+k), Number(n))
+      Sum(Sum( Number(k), Number(n)), Number(n) ).show == k.toString + " + " + n.toString + " + " + n.toString
+      //} else true
+    }
+
+  property("otherwise right Sum operand reduces") =
+    forAll { (n:Int, b:Boolean, k:Int) =>
+      Sum( Number(n), Sum( Number(k), Number(n))).eval(env) == n + k + n
+      mach.reductionStep(Sum(  Number(n), Sum( Number(k), Number(n))), env) == Sum(Number(n), Number(n+k))
+      Sum( Number(n), Sum( Number(k), Number(n)) ).show == n.toString + " + " + k.toString + " + " + n.toString
+      //} else true
+    }
+
+
+
+
+  // PROD ==============================================
+  property("PROD of two Numbers reduces to Number with their sum") =
+    forAll { (n:Int, k:Int) =>
+      Prod(Number(n), Number(k)).eval(env) == k*n
+      mach.reduce(Prod(Number(n), Number(k)), env) == Number(n*k)
+      Prod(Number(n), Number(k)).show == n.toString + " * " + k.toString
+      //} else true
+    }
+
+  property("PROD of Number and Bool does not reduce") =
+    forAll { (n:Int, b:Boolean) =>
+      Prod(Number(n), Bool(b)).eval(env) == None
+      mach.reduce(Prod(Number(n), Bool(b)), env) == ErrorExpr
+      Prod(Number(n), Bool(b)).show == n.toString + " * " + b.toString
+      //} else true
+    }
+
+  property("PROD of Bool and Number does not reduce") =
+    forAll { (n:Int, b:Boolean) =>
+      Prod( Bool(b), Number(n)).eval(env) == None
+      mach.reduce(Prod( Bool(b), Number(n)), env) == ErrorExpr
+      Prod(Bool(b), Number(n) ).show == b.toString + " * " + n.toString
+      //} else true
+    }
+
+
+  property("left PROD operand reduces if it is reducible and right is left unchanged") =
+    forAll { (n:Int, b:Boolean, k:Int) =>
+      Prod( Sum( Number(k), Number(n)), Number(n)).eval(env) == (n + k) * n
+      mach.reductionStep(Sum( Sum( Number(k), Number(n)), Number(n)), env) == Prod(Number(n+k), Number(n))
+      Prod(Sum( Number(k), Number(n)), Number(n) ).show == "(" + k.toString + " + " + n.toString + ")" + " * " + n.toString
+      //} else true
+    }
+
+  property("otherwise right PROD operand reduces") =
+    forAll { (n:Int, b:Boolean, k:Int) =>
+      Prod( Number(n), Sum( Number(k), Number(n))).eval(env) == n * (k + n)
+      mach.reductionStep(Prod(  Number(n), Sum( Number(k), Number(n))), env) == Prod(Number(n), Number(n+k))
+      Prod( Number(n), Sum( Number(k), Number(n)) ).show == n.toString + " * " + "(" + k.toString + " + " + n.toString + ")"
+      //} else true
+    }
+
+
+  // LESS =============================================================================
+  property("Less of two Numbers reduces to Bool indicating whether first number is less than the second") =
+    forAll { (n:Int, k:Int) =>
+      Less(Number(n), Number(k)).eval(env) == (n < k)
+      mach.reduce(Less(Number(n), Number(k)), env) == Bool(n<k)
+      Less(Number(n), Number(k)).show == n.toString + " < " + k.toString
+      //} else true
+    }
+
+  property("Less of Number and Bool does not reduce") =
+    forAll { (n:Int, b:Boolean) =>
+      Less(Number(n), Bool(b)).eval(env) == None
+      mach.reduce(Less(Number(n), Bool(b)), env) == ErrorExpr
+      Less(Number(n), Bool(b)).show == n.toString + " < " + b.toString
+      //} else true
+    }
+
+  property("Less of Bool and Number does not reduce") =
+    forAll { (n:Int, b:Boolean) =>
+      Less( Bool(b), Number(n)).eval(env) == None
+      mach.reduce(Less( Bool(b), Number(n)), env) == ErrorExpr
+      Less(Bool(b), Number(n) ).show == b.toString + " < " + n.toString
+      //} else true
+    }
+
+
+  property("left Less operand reduces if it is reducible and right is left unchanged") =
+    forAll { (n:Int, b:Boolean, k:Int) =>
+      Less( Sum( Number(k), Number(n)), Number(n)).eval(env) == ((n + k) < n)
+      mach.reductionStep(Less( Sum( Number(k), Number(n)), Number(n)), env) == Less(Number(n+k), Number(n))
+      Less(Sum( Number(k), Number(n)), Number(n) ).show == "(" + k.toString + " + " + n.toString + ")" + " < " + n.toString
+      //} else true
+    }
+
+  property("otherwise right Less operand reduces") =
+    forAll { (n:Int, b:Boolean, k:Int) =>
+      Less( Number(n), Sum( Number(k), Number(n))).eval(env) == (n < (k + n))
+      mach.reductionStep(Less(  Number(n), Sum( Number(k), Number(n))), env) == Less(Number(n), Number(n+k))
+      Less( Number(n), Prod( Number(k), Number(n)) ).show == n.toString + " < " + "(" + k.toString + " * " + n.toString + ")"
+      //} else true
+    }
+
     /*
-    test("Bool does not reduce") {
-      test("Number Var reduces to its value") {
-        test("Bool Var reduces to its value") {
-          test("Unknown Var does not reduce") {
+
+  // LESS
+  test("Less of two Numbers reduces to Bool indicating whether first number is less than the second") {
+  test("Less of Number and Bool does not reduce") {
+  test("Less of Bool and Number does not reduce") {
+  test("left Less operand reduces if it is reducible and right is left unchanged") {
+  test("otherwise right Less operand reduces") {
+
+  // IfElse
+  test("IfElse reduces to thenExpr for Bool(true) condition") {
+  test("IfElse reduces to elseExpr for Bool(false) condition") {
+  test("IfElse for Number condition does not reduce") {
+  test("IfElse for reducible condition reduces its condition") {
+
+  /////////////////////////// STATEMENTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+  test("DoNothing does not alter environment") {
+
+  // Assign
+  test("Assign adds new variable for number expression") {
+  test("Assign adds new variable for boolean expression") {
+  test("Assign updates existing variable for number expression") {
+  test("Assign updates existing variable for boolean expression") {
+  test("Assign updates existing variable for expression with the same variable") {
+  test("Assign does not occur for erroneous expression") {
+
+  // If
+  test("'If' runs thenStat if condition is Bool(true)") {
+  test("'If' runs elseStat if condition is Bool(false)") {
+  test("'If' statement fails for erroneous condition") {
+  test("'If' statement fails for condition expression that reduces to Number") {
+
+  // Seq
+  test("'Seq' does nothing if empty") {
+  test("'Seq' executes one its statement if contains only one") {
+  test("'Seq' executes its statements one by one") {
+  test("'Seq' does not execute remained statements after first failure") {
+
+  // While
+  test("'While' executes thenStat multiple times while condition reduces to Bool(true)") {
+  test("'While' does not execute thenStat if condition reduces to Bool(false) from the start") {
+  test("'While' statement fails for erroneous condition") {
+  test("'While' statement fails for condition expression that reduces to Number") {
+  test("'While' statement fails if thenStat statement fails") {
+
 */
 
 

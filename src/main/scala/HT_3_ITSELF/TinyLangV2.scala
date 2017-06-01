@@ -123,12 +123,18 @@ object TinyLangV2 {
         case un:UnarOper => un.value.toString
         case IfElse(cond, l, r) => "{ (" + cond.show + ")_?_(" + l.show + ")_:_(" + r.show + ") }"
         case dj:Disj => dj.lOp.show + dj.sign + dj.rOp.show
-        case cj:Conj => (cj.lOp, cj.rOp) match  {
-          case (ldj:Disj, rdj:Disj)  => "(" + cj.lOp.show + ")" + cj.sign + "(" + cj.rOp.show +")"
-          case (ldj:Disj, _ )        => "(" + cj.lOp.show + ")" + cj.sign +  cj.rOp.show
-          case (_ , rdj:Disj )       =>  cj.lOp.show  + cj.sign + "(" + cj.rOp.show +")"
-          case (_, _ )               =>  cj.lOp.show + cj.sign +  cj.rOp.show
+        case cj:Conj => (cj, cj.lOp, cj.rOp) match  {
+          case (lg:LogExpr, l:UnarOper, r:UnarOper)  => cj.lOp.show  + cj.sign  + cj.rOp.show
+          case (lg:LogExpr, l:UnarOper, _)  =>  cj.lOp.show + cj.sign + "(" + cj.rOp.show +")"
+          case (lg:LogExpr, _, r:UnarOper)  => "(" + cj.lOp.show + ")" + cj.sign +  cj.rOp.show
+          case (lg:LogExpr, _, _)  => "(" + cj.lOp.show + ")" + cj.sign + "(" + cj.rOp.show +")"
+
+          case (_, ldj:Disj, rdj:Disj)  => "(" + cj.lOp.show + ")" + cj.sign + "(" + cj.rOp.show +")"
+          case (_,ldj:Disj, _ )        => "(" + cj.lOp.show + ")" + cj.sign +  cj.rOp.show
+          case (_,_ , rdj:Disj )       =>  cj.lOp.show  + cj.sign + "(" + cj.rOp.show +")"
+          case (_,_, _ )               =>  cj.lOp.show + cj.sign +  cj.rOp.show
         }
+        case _ => ErrorExpr("Unknown_to_string transition [" + this.toString + "]").show
       }
 
 

@@ -1,9 +1,5 @@
 package HT_3_ITSELF
 
-import IntSet.lec_6_IntegerSetTree.Empty
-
-import scala.runtime.Nothing$
-
 
 object TinyLangV1Attempt2 {
 

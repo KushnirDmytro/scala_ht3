@@ -11,7 +11,12 @@ import practice_lec_RationalNumbers.rationalFancyOperators.Rational
 /**
   * Created by d1md1m on 30.05.17.
   */
+
+
 object TinyLangV2Test extends Properties("V2Test"){
+
+  val mach = new Machine()
+  val env = Map("A" -> 1)
 
   property("NumberConstructAndEval") = forAll { (n:Int, d:Int) =>
     Number(n).eval(env) == n
@@ -64,11 +69,6 @@ object TinyLangV2Test extends Properties("V2Test"){
         Var(k).show == k
       } else true
     }
-
-  val mach = new Machine()
-  val env = Map("A" -> 1)
-
-
 
 
 
@@ -209,6 +209,24 @@ object TinyLangV2Test extends Properties("V2Test"){
       mach.reduce( IfElse( Bool(b), Number(k), Number(n)), env) == (if (b) Number(k) else Number(n))
       IfElse( Bool(b), Number(k), Number(n)).show ==
         "{ (" + Bool(b).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
+      //} else true
+    }
+
+  property("IfElse for Number condition does not reduce") =
+    forAll { (n:Int, k:Int, b: Int) =>
+      IfElse(Number(b), Number(k), Number(n)).eval(env).isEmpty
+      mach.reduce( IfElse( Number(b), Number(k), Number(n)), env) == ErrorExpr
+      IfElse( Number(b), Number(k), Number(n)).show ==
+        "{ (" + Number(b).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
+      //} else true
+    }
+
+  property("IfElse for reducible condition reduces its condition") =
+    forAll { ( k:Int, b: Int, n:Int) =>
+      IfElse(Less(Number(b), Number(k)), Number(k), Number(n)).eval(env).get == (if(b<k) k else n)
+      mach.reductionStep( IfElse(Less(Number(b), Number(k)), Number(k), Number(n)), env) == IfElse(Bool(b<k), Number(k), Number(n))
+      mach.reductionStep(IfElse( Less(Number(b), Number(k)), Number(k), Number(n)), env).show ==
+        "{ (" + Bool(b<k).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
       //} else true
     }
 

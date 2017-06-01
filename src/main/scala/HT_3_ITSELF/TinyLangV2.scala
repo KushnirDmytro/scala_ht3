@@ -86,8 +86,6 @@ object TinyLangV2 {
 
 
     def eval[T](env:Map[String, Any]): Option[Any] = this match {
-
-      //TODO move down
       case Var(s: String) => if (env.contains(s))
         if (env(s) == s) {
           println("LoopInVarReduction")
@@ -105,7 +103,7 @@ object TinyLangV2 {
       case co: ComposedOperation => (co, co.lOp, co.rOp) match {
         case (_, l: Var, _) => mat.reductionStep(co, env).eval(env)
         case (_, _, r: Var) => mat.reductionStep(co, env).eval(env)
-        case (_, _, _) => (co.lOp.eval(env), co.rOp.eval(env)) match {
+        case (_,_,_) => (co.lOp.eval(env), co.rOp.eval(env)) match {
           case (l:Some[Any], r:Some[Any]) => (co, l.get, r.get) match {
             case (Sum(l: NumExpr, r: NumExpr), lval: Int, rval: Int) =>
               Some[Int](lval + rval)
@@ -152,24 +150,22 @@ object TinyLangV2 {
 
   final class Machine {
 
-    def ReduceToUnar(expr: Expr, env:Map[String, Any]):Expr = expr match {
-      case lg:LogExpr => lg.eval(env) match {
-        case rez:Some[Boolean] => Bool(rez.get)
-        case _ => ErrorExpr("BoolCalculationFail")
+    def ReduceToUnar(expr: Expr, env:Map[String, Any]):Expr = expr.eval(env) match {
+      case rez:Some[Any] => rez.get match {
+        case n:Int => Number(n)
+        case b:Boolean => Bool(b)
+        case _=> ErrorExpr("UndefinedReturnType")
       }
-      case ne:NumExpr => ne.eval(env) match {
-        case rez:Some[Int] => Number(rez.get)
-        case _ => ErrorExpr("NumberCalculationFail")
-      }
-      case _ => println("Unknown expression" + expr.show)
-        ErrorExpr("Reduction fail")
+      case _ => ErrorExpr("ReductionResultInNONE")
     }
 
 
     def reductionStep[T<:UnarOper](expr: Expr, env:Map[String, Any]) : Expr = expr match {
       case IfElse(cond:LogExpr, l, r) => cond match {
+        //not in reduce toUnar to create "Call By Name" style
+          // If "CBV" => replace there
         case cd:Bool => if (cd.value) l else  r
-        case _ if cond.isReduciable => reductionStep( IfElse( reductionStep(cond, env), l ,r), env )
+        case _ if cond.isReduciable =>  IfElse( reductionStep(cond, env), l ,r)
         case _ => ErrorExpr("ErrorIfElseInferrence")
       }
       case bo:ComposedOperation =>
@@ -184,7 +180,7 @@ object TinyLangV2 {
         env(s) match {
           case i:Int => Number(i)
           case b:Boolean => Bool(b)
-          case v:String if s == "__error"=> ErrorExpr(v)
+          case v:String if s == "__error" => ErrorExpr(v)
           case v:String if v == s => ErrorExpr("VariableSelfLooping")
           case v:String => Var(v)
           case _ => ErrorExpr("Unknown type of variable")
@@ -196,12 +192,26 @@ object TinyLangV2 {
 
     def reduce(expr: Expr, env:Map[String, Any]): Expr = {
      // println(expr.show)
-
-      if (expr.isReduciable)
-        reduce(reductionStep(expr, env), env)
+      if (expr.isReduciable) reductionStep(expr, env) match {
+        case a:Expr if a== expr => ErrorExpr("ReductionLoop")
+        case a:Expr => reduce(a, env)
+      }
       else
         expr
     }
+
+    def run(expr: Expr, env:Map[String, Any]): Expr = {
+      // println(expr.show)
+      if (expr.isReduciable) reductionStep(expr, env) match {
+        case a:Expr if a== expr => ErrorExpr("ReductionLoop")
+        case a:Expr => reduce(a, env)
+      }
+      else
+        expr
+    }
+
+
+
   }
 
 
@@ -212,9 +222,14 @@ object TinyLangV2 {
 
     var env =  Map("a" -> 2, "b" -> 3, "k" -> false, "var_a" -> "a")
 
-
+    var red = new Machine()
+    println( IfElse(Less(Number(1), Number(2)), Number(1), Number(2)).eval(env).get )
 
     println(IfElse(Bool(true), Number(1), Number(2)).eval(env)) //.eval(env) == (if (b) k else n)
+    println(IfElse(Number(2), Number(1), Number(2)).eval(env))
+
+    println(red.reductionStep(IfElse(Less(Number(1), Number(2)), Number(1), Number(2)),  env))
+
 
     println("ASSUME a + -3 + a + -3")
     new Machine().reduce( Sum( Sum(Var("a"), Number(-3)) , Sum(Var("a"), Number(-3)) ) , env)

@@ -202,50 +202,54 @@ object TinyLangV2Test extends Properties("V2Test"){
       //} else true
     }
 
-    /*
+  // IfElse ===============================================================================
+  property("IfElse reduces to thenExpr for Bool(true) and elseExpr for Bool(false)  condition") =
+    forAll { (n:Int, k:Int, b: Boolean) =>
+      IfElse(Bool(b), Number(k), Number(n)).eval(env).get == (if (b) k else n)
+      mach.reduce( IfElse( Bool(b), Number(k), Number(n)), env) == (if (b) Number(k) else Number(n))
+      IfElse( Bool(b), Number(k), Number(n)).show ==
+        "{ (" + Bool(b).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
+      //} else true
+    }
 
-  // LESS
-  test("Less of two Numbers reduces to Bool indicating whether first number is less than the second") {
-  test("Less of Number and Bool does not reduce") {
-  test("Less of Bool and Number does not reduce") {
-  test("left Less operand reduces if it is reducible and right is left unchanged") {
-  test("otherwise right Less operand reduces") {
 
-  // IfElse
-  test("IfElse reduces to thenExpr for Bool(true) condition") {
-  test("IfElse reduces to elseExpr for Bool(false) condition") {
-  test("IfElse for Number condition does not reduce") {
-  test("IfElse for reducible condition reduces its condition") {
+  /*
 
-  /////////////////////////// STATEMENTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-  test("DoNothing does not alter environment") {
+// IfElse
+test("IfElse reduces to thenExpr for Bool(true) condition") {
+test("IfElse reduces to elseExpr for Bool(false) condition") {
+test("IfElse for Number condition does not reduce") {
+test("IfElse for reducible condition reduces its condition") {
 
-  // Assign
-  test("Assign adds new variable for number expression") {
-  test("Assign adds new variable for boolean expression") {
-  test("Assign updates existing variable for number expression") {
-  test("Assign updates existing variable for boolean expression") {
-  test("Assign updates existing variable for expression with the same variable") {
-  test("Assign does not occur for erroneous expression") {
+/////////////////////////// STATEMENTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+test("DoNothing does not alter environment") {
 
-  // If
-  test("'If' runs thenStat if condition is Bool(true)") {
-  test("'If' runs elseStat if condition is Bool(false)") {
-  test("'If' statement fails for erroneous condition") {
-  test("'If' statement fails for condition expression that reduces to Number") {
+// Assign
+test("Assign adds new variable for number expression") {
+test("Assign adds new variable for boolean expression") {
+test("Assign updates existing variable for number expression") {
+test("Assign updates existing variable for boolean expression") {
+test("Assign updates existing variable for expression with the same variable") {
+test("Assign does not occur for erroneous expression") {
 
-  // Seq
-  test("'Seq' does nothing if empty") {
-  test("'Seq' executes one its statement if contains only one") {
-  test("'Seq' executes its statements one by one") {
-  test("'Seq' does not execute remained statements after first failure") {
+// If
+test("'If' runs thenStat if condition is Bool(true)") {
+test("'If' runs elseStat if condition is Bool(false)") {
+test("'If' statement fails for erroneous condition") {
+test("'If' statement fails for condition expression that reduces to Number") {
 
-  // While
-  test("'While' executes thenStat multiple times while condition reduces to Bool(true)") {
-  test("'While' does not execute thenStat if condition reduces to Bool(false) from the start") {
-  test("'While' statement fails for erroneous condition") {
-  test("'While' statement fails for condition expression that reduces to Number") {
-  test("'While' statement fails if thenStat statement fails") {
+// Seq
+test("'Seq' does nothing if empty") {
+test("'Seq' executes one its statement if contains only one") {
+test("'Seq' executes its statements one by one") {
+test("'Seq' does not execute remained statements after first failure") {
+
+// While
+test("'While' executes thenStat multiple times while condition reduces to Bool(true)") {
+test("'While' does not execute thenStat if condition reduces to Bool(false) from the start") {
+test("'While' statement fails for erroneous condition") {
+test("'While' statement fails for condition expression that reduces to Number") {
+test("'While' statement fails if thenStat statement fails") {
 
 */
 

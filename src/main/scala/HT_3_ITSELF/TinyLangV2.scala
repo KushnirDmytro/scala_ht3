@@ -64,7 +64,7 @@ object TinyLangV2 {
     def sign = " < "
   }
 
-  case class IfElse(cond:LogExpr, lOp:Expr, rOp: Expr) extends Conj{
+  case class IfElse(cond:Expr, lOp:Expr, rOp: Expr) extends Conj{
     def sign = " : "
   }
 
@@ -95,20 +95,26 @@ object TinyLangV2 {
         }
         else Some[Any](env(s))
       else None
+      case IfElse(cond:Expr, lOp, rOp) => cond.eval(env) match {
+        case (sm:Some[Any]) => sm.get match {
+          case rez:Boolean => if (rez) lOp.eval(env) else rOp.eval(env)
+          case _ => None
+        }
+        case (_) => None
+      }
       case co: ComposedOperation => (co, co.lOp, co.rOp) match {
         case (_, l: Var, _) => mat.reductionStep(co, env).eval(env)
         case (_, _, r: Var) => mat.reductionStep(co, env).eval(env)
-        case (_, _, _) => (co, co.lOp.eval(env), co.rOp.eval(env)) match {
-
-          case (Sum(l: NumExpr, r: NumExpr), lval: Some[Int], rval: Some[Int]) =>
-            Some[Int](lval.get + rval.get)
-          case (Prod(l: NumExpr, r: NumExpr), lval: Some[Int], rval: Some[Int]) =>
-            Some[Int](lval.get * rval.get)
-          case (Less(l: NumExpr, r: NumExpr), lval: Some[Int], rval: Some[Int]) =>
-            Some[Boolean](lval.get < rval.get)
-          case (IfElse(cond, lOp, rOp), lval: Expr, rval: Expr) =>
-            Some[Expr]( mat.reductionStep(this, env)) //already produces error
-          case (_, _, _) => None
+        case (_, _, _) => (co.lOp.eval(env), co.rOp.eval(env)) match {
+          case (l:Some[Any], r:Some[Any]) => (co, l.get, r.get) match {
+            case (Sum(l: NumExpr, r: NumExpr), lval: Int, rval: Int) =>
+              Some[Int](lval + rval)
+            case (Prod(l: NumExpr, r: NumExpr), lval: Int, rval: Int) =>
+              Some[Int](lval * rval)
+            case (Less(l: NumExpr, r: NumExpr), lval: Int, rval: Int) =>
+              Some[Boolean](lval < rval)
+            case (_, _, _) => None
+          }
         }
       }
       case uo: UnarOper => uo match {
@@ -155,16 +161,17 @@ object TinyLangV2 {
         case rez:Some[Int] => Number(rez.get)
         case _ => ErrorExpr("NumberCalculationFail")
       }
-      case IfElse(cond, l, r) => reductionStep(cond, env) match {
-        case rez:Bool => if (rez.value) l else  r
-        case _ => ErrorExpr("ErrorIfElseInferrence")
-      }
       case _ => println("Unknown expression" + expr.show)
         ErrorExpr("Reduction fail")
     }
 
 
     def reductionStep[T<:UnarOper](expr: Expr, env:Map[String, Any]) : Expr = expr match {
+      case IfElse(cond:LogExpr, l, r) => cond match {
+        case cd:Bool => if (cd.value) l else  r
+        case _ if cond.isReduciable => reductionStep( IfElse( reductionStep(cond, env), l ,r), env )
+        case _ => ErrorExpr("ErrorIfElseInferrence")
+      }
       case bo:ComposedOperation =>
         if (bo.lOp.isReduciable) bo.ComposedOperMemberReduce(reductionStep(bo.lOp, env), bo.rOp)
         else  if (bo.rOp.isReduciable) bo.ComposedOperMemberReduce(bo.lOp, reductionStep(bo.rOp, env))
@@ -201,8 +208,13 @@ object TinyLangV2 {
 
 
   def main(args: Array[String]): Unit = {
+
+
     var env =  Map("a" -> 2, "b" -> 3, "k" -> false, "var_a" -> "a")
 
+
+
+    println(IfElse(Bool(true), Number(1), Number(2)).eval(env)) //.eval(env) == (if (b) k else n)
 
     println("ASSUME a + -3 + a + -3")
     new Machine().reduce( Sum( Sum(Var("a"), Number(-3)) , Sum(Var("a"), Number(-3)) ) , env)

@@ -72,13 +72,13 @@ object TinyLangV2 {
   trait Expr {
 
     def isReduciable :Boolean = this match {
+      case DoNothing() => false
+      case e:END => false
+      case st:Stat => true
       case bo:ComposedOperation=> true
       case Var(s: String) => true
       case _ => false
     }
-
-
-
 
 
     val mat = new Machine()
@@ -138,17 +138,61 @@ object TinyLangV2 {
           case (_,_ , rdj:Disj )       =>  cj.lOp.show  + cj.sign + "(" + cj.rOp.show +")"
           case (_,_, _ )               =>  cj.lOp.show + cj.sign +  cj.rOp.show
         }
+        case (st:Stat) => st match{
+          case DoNothing() => "DoNothing "
+        }
         case _ => ErrorExpr("Unknown_to_string transition [" + this.toString + "]").show
       }
 
+  }
 
+  trait Stat extends Expr{
 
   }
 
+  case class DoNothing() extends Stat{
+  }
 
+  case class END(expr: Any = None) extends Stat{
+  }
+
+  case class Assign(key:String, expr:Expr) extends Stat
 
 
   final class Machine {
+
+
+    def executionStep(stat: Expr, env: Map[String, Any]):(Stat, Map[String, Any]) =
+      (stat,env) match {
+        case (st: Stat, _) => (st, env) match {
+          //case (DoNothing(), e) =>  (st, env)
+          case (Assign(s: String, v: Expr), e) =>
+            (s, v) match {
+            case (_,v: Stat) => (END(), env + (s -> v)) //"funcion" assignment. Let it be
+            case (_, Var(key:String)) => (END(), env + (s -> key) )
+            case (_,v: Expr) => v.eval(env) match {
+              case rez: Some[Any] => (END(), env + (s -> rez.get))
+              case _ => (END(), env + ("__error" -> "AssignmentOfErrorAttempt"))
+            }
+            case (_, _) => (END(), env + ("__error" -> "UnknownValueToAssign"))
+          }
+        }
+      }
+
+    def run(stat: Stat, env:Map[String, Any]): Map[String, Any] = {
+      //println(stat.show)
+      if (stat.isReduciable)
+        executionStep(stat, env) match {
+        case (_, newEnv) if newEnv.contains("__error") => newEnv + ("END" -> "ErrorTermination")
+        case (e:END, newEnv) => newEnv + ("END" -> "OK")
+        case (expr, newEnv) if expr == stat => newEnv + ("END" -> "LiveLoopDangerTermination")
+        case (expr:Stat, newEnv) => run(expr, newEnv)
+        case (_,newEnv) => newEnv + ("__error" -> "UnknownState","END" -> "ErrorTermination")
+      }
+      else
+        env
+    }
+
 
     def ReduceToUnar(expr: Expr, env:Map[String, Any]):Expr = expr.eval(env) match {
       case rez:Some[Any] => rez.get match {
@@ -200,15 +244,6 @@ object TinyLangV2 {
         expr
     }
 
-    def run(expr: Expr, env:Map[String, Any]): Expr = {
-      // println(expr.show)
-      if (expr.isReduciable) reductionStep(expr, env) match {
-        case a:Expr if a== expr => ErrorExpr("ReductionLoop")
-        case a:Expr => reduce(a, env)
-      }
-      else
-        expr
-    }
 
 
 
@@ -233,7 +268,6 @@ object TinyLangV2 {
 
     println("ASSUME a + -3 + a + -3")
     new Machine().reduce( Sum( Sum(Var("a"), Number(-3)) , Sum(Var("a"), Number(-3)) ) , env)
-
 
 
     new Machine().reduce( IfElse(Less(Number(2), Bool(false)), Number(-1) ,  Number(-1) ) ,env)

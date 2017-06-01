@@ -231,24 +231,84 @@ object TinyLangV2Test extends Properties("V2Test"){
     }
 
 
+
+  /////////////////////////// STATEMENTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+  property("DoNothing does not alter environment") =
+    forAll { ( k:Int) =>
+         mach.run(DoNothing(), env) == env
+      DoNothing().show == "DoNothing "
+    }
+
+
+  // Assign ============================================================
+
+  property("Assign adds new variable for number expression") =
+    forAll { ( k:Int, n:Int, s:String) =>
+      val test1 = mach.run(Assign(s, Sum(Number(k), Number(n))), env)
+      val test2 = mach.run(Assign(s,Number(k)), env)
+      test1.contains(s)
+      test2.contains(s)
+      test1(s) == n+k
+      test2(s) == k
+    }
+
+  property("Assign adds new variable for boolean expression") =
+    forAll { ( k:Int, n:Int, b:Boolean , s:String) =>
+      val test1 = mach.run(Assign(s,Less(Number(k), Number(n))), env)
+      val test2 = mach.run(Assign(s,Bool(b)), env)
+      test1.contains(s)
+      test2.contains(s)
+      test1(s) == (k < n)
+      test2(s) == b
+    }
+
+
+  property("Assign updates existing variable for number expression") =
+    forAll { ( k:Int, n:Int, s:String) =>
+      val test1 =  mach.run(Assign(s,Sum(Number(k+1), Number(n))), env)
+      val test1_2 = mach.run(Assign(s,Sum(Number(k), Number(n))), test1)
+      val test2 = mach.run(Assign(s,Number(k+1)), env)
+      val test2_2 = mach.run(Assign(s,Number(k)), test2)
+      test1_2.contains(s)
+      test2_2.contains(s)
+      test1_2(s) == n+k
+      test1_2(s) != test1(s)
+      test2_2(s) == k
+      test2_2(s) != test2(s)
+    }
+
+  property("Assign updates existing variable for bool expression") =
+    forAll { ( k:Int, n:Int, b:Boolean, s:String) =>
+      val test1 = mach.run(Assign(s,Sum(Number(k+1), Number(n))), env)
+      val test1_2 = mach.run(Assign(s,Less(Number(k), Number(n))), test1)
+      val test2 = mach.run(Assign(s,Number(k+1)), env)
+      val test2_2 = mach.run(Assign(s,Bool(b)), test2)
+      test1_2.contains(s)
+      test2_2.contains(s)
+      test1_2(s) == b
+      test1_2(s) != n+k+1
+      test2_2(s) == b
+      test2_2(s) != k+1
+    }
+  property("Assign updates existing variable for expression with the same variable") =
+    forAll { ( k:Int, n:Int, b:Boolean, s:String) =>
+      val test1 = mach.run(Assign(s,Sum(Number(k+1), Number(n))), env)
+      val test1_2 = mach.run(Assign(s, Var(s)), test1)
+      test1_2.contains(s)
+      test1_2(s) == s
+      !test1_2.equals(test1)
+    }
+  property("Assign does not occur for erroneous expression") =
+    forAll { ( k:Int, n:Int, b:Boolean, s:String) =>
+      val test1 = mach.run(Assign(s,Less(Number(k+1), Bool(b))), env)
+      val test2 = mach.run(Assign(s,Number(k)), env)
+      val test2_2 = mach.run(Assign(s, Less(Number(n), Bool(b))), test2)
+      test1 == env
+      test2.contains(s)
+      test2_2(s) == test2(s)
+    }
+
   /*
-
-// IfElse
-test("IfElse reduces to thenExpr for Bool(true) condition") {
-test("IfElse reduces to elseExpr for Bool(false) condition") {
-test("IfElse for Number condition does not reduce") {
-test("IfElse for reducible condition reduces its condition") {
-
-/////////////////////////// STATEMENTS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-test("DoNothing does not alter environment") {
-
-// Assign
-test("Assign adds new variable for number expression") {
-test("Assign adds new variable for boolean expression") {
-test("Assign updates existing variable for number expression") {
-test("Assign updates existing variable for boolean expression") {
-test("Assign updates existing variable for expression with the same variable") {
-test("Assign does not occur for erroneous expression") {
 
 // If
 test("'If' runs thenStat if condition is Bool(true)") {

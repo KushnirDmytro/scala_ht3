@@ -80,10 +80,7 @@ object TinyLangV2 {
       case _ => false
     }
 
-
     val mat = new Machine()
-
-
 
     def eval[T](env:Map[String, Any]): Option[Any] = this match {
       case Var(s: String) => if (env.contains(s))
@@ -146,26 +143,34 @@ object TinyLangV2 {
 
   }
 
-  trait Stat extends Expr{
+  trait Stat extends Expr
 
-  }
+  case class DoNothing() extends Stat
 
-  case class DoNothing() extends Stat{
-  }
-
-  case class END(expr: Any = None) extends Stat{
-  }
+  case class END(expr: Any = None) extends Stat
 
   case class Assign(key:String, expr:Expr) extends Stat
 
+  case class If (Cond:Expr, thenStat:Expr, elseStat:Expr) extends Stat
+
+  case class While(Cond:Expr, Dovar:Expr)extends Stat
+
+
 
   final class Machine {
-
 
     def executionStep(stat: Expr, env: Map[String, Any]):(Stat, Map[String, Any]) =
       (stat,env) match {
         case (st: Stat, _) => (st, env) match {
           //case (DoNothing(), e) =>  (st, env)
+          case (If(cond, thenStat:Stat, elseStat:Stat),e) =>
+            cond.eval(e) match {
+              case s:Some[Any] => s.get match {
+                case (b:Boolean) => if (b) (thenStat, e) else (elseStat, e)
+                case _ => (END(), e + ("__error" -> "IfElseConditionReducitonWrongType") )
+            }
+              case _ => (END(), e + ("__error" -> "IfElseConditionReducitonToNone"))
+            }
           case (Assign(s: String, v: Expr), e) =>
             (s, v) match {
             case (_,v: Stat) => (END(), env + (s -> v)) //"funcion" assignment. Let it be

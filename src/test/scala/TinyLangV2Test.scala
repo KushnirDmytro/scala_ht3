@@ -308,9 +308,92 @@ object TinyLangV2Test extends Properties("V2Test"){
       test2_2(s) == test2(s)
     }
 
+
+  // If =======================================================
+  property("'If' runs thenStat if condition is Bool(true)") =
+    forAll { ( k:Int, s:String) =>
+      if (k < 2147483647) {
+        val test1 = mach.run(
+        If (Bool(true),
+          Assign(s, Number(k)),
+          Assign(s, Number(k+1))),
+      env)
+      val test2 = mach.run(
+        If (Less(Number(k), Number(k+1)),
+          Assign(s, Number(k)),
+          Assign(s, Number(k+1))),
+        env)
+      test1.contains(s)
+      test2.contains(s)
+      test1(s) == k
+      test1(s) != k+1
+      test2(s) == k
+      test2(s) != k+1
+      }
+      else true
+    }
+
+  property("'If' runs elseStat if condition is Bool(false)") =
+    forAll { ( k:Int, s:String) =>
+      if (k < 2147483647) {
+      val test1 = mach.run(
+        If (Bool(false),
+          Assign(s, Number(k)),
+          Assign(s, Number(k+1))),
+        env)
+      val test2 = mach.run(
+        If (Less(Number(k+1), Number(k)),
+          Assign(s, Number(k)),
+          Assign(s, Number(k+1))),
+        env)
+      test1.contains(s)
+      test2.contains(s)
+      test1(s) != k
+      test1(s) == k+1
+      test2(s) != k
+      test2(s) == k+1
+      }
+      else true
+    }
+
+  property("'If' statement fails for erroneous condition") =
+    forAll { ( k:Int, s:String) =>
+      val test1 = mach.run(
+        If (ErrorExpr("testError"),
+          Assign(s, Number(k)),
+          Assign(s, Number(k+1))),
+        env)
+      val test2 = mach.run(
+        If (Less(Bool(false), Number(k)),
+          Assign(s, Number(k)),
+          Assign(s, Number(k+1))),
+        env)
+      !test1.contains(s)
+      !test2.contains(s)
+      test1.contains("__error")
+      test2.contains("__error")
+      }
+  property("'If' statement fails for condition that reduces to  Number") =
+    forAll { ( n:Int, k:Int, s:String) =>
+        val test1 = mach.run(
+          If(Sum(Number(n), Number(k)),
+            Assign(s, Number(k)),
+            Assign(s, Number(k + 1))),
+          env)
+        val test2 = mach.run(
+          If(Number(k),
+            Assign(s, Number(k)),
+            Assign(s, Number(k + 1))),
+          env)
+        !test1.contains(s)
+        !test2.contains(s)
+        test1.contains("__error")
+        test2.contains("__error")
+    }
+
+
   /*
 
-// If
 test("'If' runs thenStat if condition is Bool(true)") {
 test("'If' runs elseStat if condition is Bool(false)") {
 test("'If' statement fails for erroneous condition") {

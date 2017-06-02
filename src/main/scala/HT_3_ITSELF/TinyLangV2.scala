@@ -1,5 +1,6 @@
 package HT_3_ITSELF
 
+
 object TinyLangV2 {
 
 
@@ -153,7 +154,11 @@ object TinyLangV2 {
 
   case class If (Cond:Expr, thenStat:Expr, elseStat:Expr) extends Stat
 
-  case class While(Cond:Expr, Dovar:Expr)extends Stat
+  case class Seq(DoSeq:Stat*) extends Stat{
+  }
+
+
+  case class While(Cond:Expr, Doseq:Seq)extends Stat
 
 
 
@@ -163,6 +168,16 @@ object TinyLangV2 {
       (stat,env) match {
         case (st: Stat, _) => (st, env) match {
           //case (DoNothing(), e) =>  (st, env)
+
+          case (Seq(head, tail @ _*),e) => (head, tail) match {
+            case (h:Stat, _ ) =>
+              ( Seq(tail: _*), e ++ run (head, e) )
+            case (h:Stat) => (END(), e ++ run (head, e))
+          }
+          case (Seq(),e) => /*Assume empty*/ (END(), env)
+
+
+
           case (If(cond, thenStat:Stat, elseStat:Stat),e) =>
             cond.eval(e) match {
               case s:Some[Any] => s.get match {
@@ -171,6 +186,8 @@ object TinyLangV2 {
             }
               case _ => (END(), e + ("__error" -> "IfElseConditionReducitonToNone"))
             }
+
+
           case (Assign(s: String, v: Expr), e) =>
             (s, v) match {
             case (_,v: Stat) => (END(), env + (s -> v)) //"funcion" assignment. Let it be
@@ -188,6 +205,7 @@ object TinyLangV2 {
       //println(stat.show)
       if (stat.isReduciable)
         executionStep(stat, env) match {
+
         case (_, newEnv) if newEnv.contains("__error") => newEnv + ("END" -> "ErrorTermination")
         case (e:END, newEnv) => newEnv + ("END" -> "OK")
         case (expr, newEnv) if expr == stat => newEnv + ("END" -> "LiveLoopDangerTermination")
@@ -263,6 +281,22 @@ object TinyLangV2 {
     var env =  Map("a" -> 2, "b" -> 3, "k" -> false, "var_a" -> "a")
 
     var red = new Machine()
+
+
+    println(red.run(
+      Seq(
+        Assign("s", Number(2)), Assign("s", Sum(Number(2), Var("s")) )
+      )
+      , env)
+    )
+
+    println(red.run(
+      Seq(
+        //Assign("s", Number(2)), Assign("s", Sum(Number(2), Var("s")) )
+      )
+      , env)
+    )
+
     println( IfElse(Less(Number(1), Number(2)), Number(1), Number(2)).eval(env).get )
 
     println(IfElse(Bool(true), Number(1), Number(2)).eval(env)) //.eval(env) == (if (b) k else n)

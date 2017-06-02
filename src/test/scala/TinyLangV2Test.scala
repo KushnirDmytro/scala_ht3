@@ -1,4 +1,4 @@
-import HT_3_ITSELF.TinyLangV2._
+import HT_3_ITSELF.TinyLangV2.{Assign, _}
 import RationlaProps.property
 import org.scalacheck.Properties
 import org.scalacheck.Prop.forAll
@@ -391,13 +391,80 @@ object TinyLangV2Test extends Properties("V2Test"){
         test2.contains("__error")
     }
 
+  // Seq ================================================================
+  property("'Seq' does nothing if empty") =
+    forAll { ( n:Int, k:Int, s:String) =>
+        val test1 = mach.run(
+          Seq(
+          ),
+          env)
+        !test1.contains(s)
+        !test1.contains("__error")
+    }
+
+  property("'Seq' executes one its statement if contains only one") =
+      forAll { (k: Int, s: String) =>{
+        if (k < 2147483647) {
+          val test1 = mach.run(
+            Seq(
+              Assign(s, Number(k))
+            ),
+            env)
+          val test2 = mach.run(
+            Seq(
+              Assign(s, Sum(Number(1), Number(k))
+              )),
+            env)
+          test1.contains(s)
+          test2.contains(s)
+          test1(s) == k
+          test2(s) == k + 1
+        } else true
+        }
+      }
+
+        property("'Seq' executes its statements one by one") =
+          forAll { (n: Int, k: Int, s: String, s2: String) =>
+            if (k < 2147483647) {
+              val test1 = mach.run(
+                Seq(
+                  Assign(s, Number(k)),
+                  Assign(s2, Sum(Var(s), Number(1)))
+                ),
+                env)
+              test1.contains(s)
+              test1.contains(s2)
+              test1(s) == k
+              test1(s2) == k + 1
+            } else true
+          }
+
+            property("'Seq' does not execute remained statements after first failure") =
+              forAll { (n: Int, k: Int, s: String, s2: String, er: String) =>
+                if (k < 2147483647) {
+                  val test1 = mach.run(
+                    Seq(
+                      Assign(s, Number(k)),
+                      Assign(er, ErrorExpr("testErrot")),
+                      Assign(s2, Sum(Var(s), Number(1)))
+                    ),
+                    env)
+                  test1.contains(s)
+                  test1.contains("__error")
+                  !test1.contains(s2)
+                  test1(s) == k
+                } else true
+              }
+
+
+
+
+  //  test("'Seq' executes one its statement if contains only one") {
+   //   test("'Seq' executes its statements one by one") {
+    //    test("'Seq' does not execute remained statements after first failure") {
+
 
   /*
-
-test("'If' runs thenStat if condition is Bool(true)") {
-test("'If' runs elseStat if condition is Bool(false)") {
-test("'If' statement fails for erroneous condition") {
-test("'If' statement fails for condition expression that reduces to Number") {
 
 // Seq
 test("'Seq' does nothing if empty") {

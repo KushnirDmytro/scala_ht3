@@ -1,7 +1,7 @@
 package HT_3_ITSELF
 
 
-object TinyLangV2 {
+object TinyLangV2_FINAL_ {
 
   /**
     * Created by d1md1m on 25.05.17.

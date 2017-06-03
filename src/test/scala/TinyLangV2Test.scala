@@ -1,5 +1,5 @@
-import HT_3_ITSELF.TinyLangV2
-import HT_3_ITSELF.TinyLangV2.{Assign, _}
+import HT_3_ITSELF.TinyLangV2_FINAL_
+import HT_3_ITSELF.TinyLangV2_FINAL_.{Assign, _}
 import RationlaProps.property
 import org.scalacheck.Properties
 import org.scalacheck.Prop.forAll

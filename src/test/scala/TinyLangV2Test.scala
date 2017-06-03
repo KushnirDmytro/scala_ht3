@@ -1,3 +1,4 @@
+import HT_3_ITSELF.TinyLangV2
 import HT_3_ITSELF.TinyLangV2.{Assign, _}
 import RationlaProps.property
 import org.scalacheck.Properties
@@ -429,14 +430,25 @@ object TinyLangV2Test extends Properties("V2Test"){
               val test1 = mach.run(
                 Seq(
                   Assign(s, Number(k)),
-                  Assign(s2, Sum(Var(s), Number(1)))
+                  Assign(s, Sum(Var(s), Number(1)))
                 ),
                 env)
+             // test1.contains(s)
               test1.contains(s)
-              test1.contains(s2)
-              test1(s) == k
-              test1(s2) == k + 1
-            } else true
+              //test1(s) == k
+              test1(s) == k + 1
+
+            val test2 = mach.run(
+              Seq(
+                Assign(s, Number(k)),
+                Assign(s2, Sum(Var(s), Number(1)))
+              ),
+              env)
+            test2.contains(s)
+            test2.contains(s2)
+            test2(s) == k
+            test2(s2) == k + 1
+          }  else true
           }
 
             property("'Seq' does not execute remained statements after first failure") =
@@ -456,22 +468,59 @@ object TinyLangV2Test extends Properties("V2Test"){
                 } else true
               }
 
+  // While ===========================================
+
+  property("'Seq' executes its statements one by one") =
+    forAll { (n: Int, k: Int, s: String, s2: String) =>
+      if (k < 2147483647) {
+        val test1 = mach.run(
+          Seq(
+            Assign(s, Number(k)),
+            Assign(s, Sum(Var(s), Number(1)))
+          ),
+          env)
+        // test1.contains(s)
+        test1.contains(s)
+        //test1(s) == k
+        test1(s) == k + 1
+
+        val test2 = mach.run(
+          Seq(
+            Assign(s, Number(k)),
+            Assign(s2, Sum(Var(s), Number(1)))
+          ),
+          env)
+        test2.contains(s)
+        test2.contains(s2)
+        test2(s) == k
+        test2(s2) == k + 1
+      }  else true
+    }
+
+  property("'While' executes thenStat multiple times while condition reduces to Bool(true)") =
+    forAll { (n: Int, checker: String, decrement: String) =>
+      if ((n > 0) && (n < 200) && (checker!=decrement)) {
+        val preperationEnv = mach.run(Assign(decrement, Number(n)), env)
+        val testEnv = mach.run(Assign(checker, Number(0)), preperationEnv)
+        val test1 = mach.run(
+          While( Less(Number(0), Var(decrement))
+            ,
+            Seq(
+              Assign(decrement, Sum( Var(decrement), Number(-1) )), //decrementation
+              Assign(checker, Sum( Var(checker), Number(1) ))
+          )
+          ),
+          testEnv)
+        test1.contains(checker)
+        test1.contains(decrement)
+        !test1.contains("__error")
+        test1(checker) == n
+        test1(decrement) == 0
+      } else true
+    }
 
 
-
-  //  test("'Seq' executes one its statement if contains only one") {
-   //   test("'Seq' executes its statements one by one") {
-    //    test("'Seq' does not execute remained statements after first failure") {
-
-
-  /*
-
-// Seq
-test("'Seq' does nothing if empty") {
-test("'Seq' executes one its statement if contains only one") {
-test("'Seq' executes its statements one by one") {
-test("'Seq' does not execute remained statements after first failure") {
-
+/*
 // While
 test("'While' executes thenStat multiple times while condition reduces to Bool(true)") {
 test("'While' does not execute thenStat if condition reduces to Bool(false) from the start") {

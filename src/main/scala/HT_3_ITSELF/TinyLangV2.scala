@@ -169,6 +169,19 @@ object TinyLangV2 {
         case (st: Stat, _) => (st, env) match {
           //case (DoNothing(), e) =>  (st, env)
 
+          case (While(cond:Expr, thenStat:Seq), e) => cond.eval(e) match {
+            case rez:Some[Any] => rez.get match {
+              case r:Boolean => if (r)
+                ( END(), run( st , e ++ run(thenStat, e) ) )
+                else
+                (END(), e)
+              case _ => (END(), e + ("__error" -> "WhileCondCalcNotBOOL"))
+            }
+            case _ => (END(), e+ ("__erroe" -> "WhileCondError"))
+          }
+
+
+
           case (Seq(head, tail @ _*),e) => (head, tail) match {
             case (h:Stat, _ ) =>
               ( Seq(tail: _*), e ++ run (head, e) )
@@ -278,9 +291,24 @@ object TinyLangV2 {
   def main(args: Array[String]): Unit = {
 
 
+
     var env =  Map("a" -> 2, "b" -> 3, "k" -> false, "var_a" -> "a")
 
     var red = new Machine()
+    var mach = new Machine()
+
+    val preperationEnv = mach.run(Assign("decr", Number(2)), env)
+    val testEnv = mach.run(Assign("chk", Number(0)), preperationEnv)
+    val test1 = mach.run(
+      While( Less(Number(0), Var("decr"))
+        ,
+        Seq(
+          Assign("decr", Sum( Var("decr"), Number(-1) )), //decrementation
+          Assign("chk", Sum( Var("chk"), Number(1) ))
+        )
+      ),
+      testEnv)
+    println(test1)
 
 
     println(red.run(

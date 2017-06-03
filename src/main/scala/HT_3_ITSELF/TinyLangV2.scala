@@ -3,7 +3,6 @@ package HT_3_ITSELF
 
 object TinyLangV2 {
 
-
   /**
     * Created by d1md1m on 25.05.17.
     */
@@ -35,36 +34,23 @@ object TinyLangV2 {
   trait Conj extends ComposedOperation // Conjunctive operations
   trait Disj extends ComposedOperation // Disjunctive operations
 
-  trait NumExpr extends Expr{
-  }
+  trait NumExpr extends Expr
+  trait LogExpr extends Expr
 
-  trait LogExpr extends Expr{
-
-  }
-
-  case class Number(value: Int) extends NumExpr with UnarOper{
-  }
-
-  case class Var(value: String) extends NumExpr with LogExpr with UnarOper {
-  }
-
-  case class Bool(value:Boolean) extends LogExpr with UnarOper{
-  }
-
+  case class Number(value: Int) extends NumExpr with UnarOper
+  case class Var(value: String) extends NumExpr with LogExpr with UnarOper
+  case class Bool(value:Boolean) extends LogExpr with UnarOper
   case class ErrorExpr(value:String) extends Expr with UnarOper
 
   case class Prod(lOp: Expr, rOp: Expr) extends NumExpr with Conj{
     def sign = " * "
   }
-
   case class Sum(lOp: Expr, rOp: Expr) extends NumExpr with Disj{
     def sign = " + "
   }
-
   case class Less(lOp: Expr, rOp: Expr) extends LogExpr with Conj{
     def sign = " < "
   }
-
   case class IfElse(cond:Expr, lOp:Expr, rOp: Expr) extends Conj{
     def sign = " : "
   }
@@ -144,6 +130,10 @@ object TinyLangV2 {
 
   }
 
+
+
+  // ===========================STATS=============================
+
   trait Stat extends Expr
 
   case class DoNothing() extends Stat
@@ -154,139 +144,14 @@ object TinyLangV2 {
 
   case class If (Cond:Expr, thenStat:Expr, elseStat:Expr) extends Stat
 
-  case class Seq(DoSeq:Stat*) extends Stat{
-  }
-
+  case class Seq(DoSeq:Stat*) extends Stat
 
   case class While(Cond:Expr, Doseq:Seq)extends Stat
 
-
-  /*
-    def executionStep(stat: Expr, env: Map[String, Any]):(Stat, Map[String, Any]) =
-      (stat,env) match {
-        case (st: Stat, _) => (st, env) match {
-
-          case (While(cond:Expr, thenStat:Seq), e) => cond.eval(e) match {
-            case rez:Some[Any] => rez.get match {
-              case r:Boolean => if (r)
-                 executionStep(thenStat, e)  match{
-                  case (rez:Stat, rezEnv:Map[String, Any])
-                    if !rezEnv.contains("__error") =>
-                    (END(), rezEnv + ("END" -> "OK"))
-                  case (_, rezEnv) => (END(), rezEnv) //already contains error
-                }
-              else (END(), e )
-              case _=> (END(), e + ("__error" -> "ConditionSeemsNOTBOOL"))
-            }
-            case _ => (END(), e+ ("__error" -> "WhileCondError"))
-          }
-
-          case (Seq(head, tail @ _*),e) => (head, tail) match {
-            case (h:Stat, _ ) =>
-              ( Seq(tail: _*), e ++ run (head, e) )
-            case (h:Stat) => (END(), e ++ run (head, e))
-          }
-          case (Seq(),e) => /*Assume empty*/ (END(), env)
-
-
-
-          case (If(cond, thenStat:Stat, elseStat:Stat),e) =>
-            cond.eval(e) match {
-              case s:Some[Any] => s.get match {
-                case (b:Boolean) => if (b) (thenStat, e) else (elseStat, e)
-                case _ => (END(), e + ("__error" -> "IfElseConditionReducitonWrongType") )
-            }
-              case _ => (END(), e + ("__error" -> "IfElseConditionReducitonToNone"))
-            }
-
-
-          case (Assign(s: String, v: Expr), e) =>
-            (s, v) match {
-            case (_,v: Stat) => (END(), env + (s -> v)) //"funcion" assignment. Let it be
-            case (_, Var(key:String)) => (END(), env + (s -> key) )
-            case (_,v: Expr) => v.eval(env) match {
-              case rez: Some[Any] => (END(), env + (s -> rez.get))
-              case _ => (END(), env + ("__error" -> "AssignmentOfErrorAttempt"))
-            }
-            case (_, _) => (END(), env + ("__error" -> "UnknownValueToAssign"))
-          }
-        }
-      }
-
-    def run(stat: Stat, env:Map[String, Any]): Map[String, Any] = {
-      //println(stat.show)
-      if (stat.isReduciable)
-        executionStep(stat, env) match {
-
-        case (_, newEnv) if newEnv.contains("__error") => newEnv + ("END" -> "ErrorTermination")
-        case (e:END, newEnv) => newEnv + ("END" -> "OK")
-        case (expr, newEnv) if expr == stat => newEnv + ("__error" -> "LiveLoopDangerTermination")
-        case (expr:Stat, newEnv) => run(expr, newEnv)
-        case (_,newEnv) => newEnv + ("__error" -> "UnknownState","END" -> "ErrorTermination")
-      }
-      else
-        env
-    }
-*/
-
+  // ===========================STATS=============================
 
 
   final class Machine {
-
-    /*
-    def executionStep(stat: Expr, env: Map[String, Any]):(Stat, Map[String, Any]) =
-      (stat,env) match {
-        case (st: Stat, _) => (st, env) match {
-
-          case (While(cond:Expr, thenStat:Seq), e) => cond.eval(e) match {
-            case rez:Some[Any] => rez.get match {
-              case r:Boolean => if (r)
-                 executionStep(thenStat, e)  match{
-                  case (rez:Stat, rezEnv:Map[String, Any])
-                    if !rezEnv.contains("__error") =>
-                    (END(), rezEnv + ("END" -> "OK"))
-                  case (_, rezEnv) => (END(), rezEnv) //already contains error
-                }
-              else (END(), e )
-              case _=> (END(), e + ("__error" -> "ConditionSeemsNOTBOOL"))
-            }
-            case _ => (END(), e+ ("__error" -> "WhileCondError"))
-          }
-
-          case (Seq(head, tail @ _*),e) => (head, tail) match {
-            case (h:Stat, _ ) =>
-              ( Seq(tail: _*), e ++ run (head, e) )
-            case (h:Stat) => (END(), e ++ run (head, e))
-          }
-          case (Seq(),e) => /*Assume empty*/ (END(), env)
-
-
-
-          case (If(cond, thenStat:Stat, elseStat:Stat),e) =>
-            cond.eval(e) match {
-              case s:Some[Any] => s.get match {
-                case (b:Boolean) => if (b) (thenStat, e) else (elseStat, e)
-                case _ => (END(), e + ("__error" -> "IfElseConditionReducitonWrongType") )
-            }
-              case _ => (END(), e + ("__error" -> "IfElseConditionReducitonToNone"))
-            }
-
-
-          case (Assign(s: String, v: Expr), e) =>
-            (s, v) match {
-            case (_,v: Stat) => (END(), env + (s -> v)) //"funcion" assignment. Let it be
-            case (_, Var(key:String)) => (END(), env + (s -> key) )
-            case (_,v: Expr) => v.eval(env) match {
-              case rez: Some[Any] => (END(), env + (s -> rez.get))
-              case _ => (END(), env + ("__error" -> "AssignmentOfErrorAttempt"))
-            }
-            case (_, _) => (END(), env + ("__error" -> "UnknownValueToAssign"))
-          }
-        }
-      }
-
-
-    */
 
 
     def returnEnv(env:Map[String, Any]): Map[String, Any] ={
@@ -298,7 +163,6 @@ object TinyLangV2 {
     def run(stat: Stat, OldEnv:Map[String, Any]): Map[String, Any] = {
       //println(stat.show)
      if (stat.isReduciable){
-        /*executionStep(stat, env)*/ //match {
 
         (stat,OldEnv + ("OldState" -> stat.toString)) match {
           case (_, newEnv) if newEnv.contains("__error") => newEnv //ALLREADY WITTH ERROR
@@ -417,6 +281,7 @@ object TinyLangV2 {
   def main(args: Array[String]): Unit = {
 
 
+/*  LOCAL TESTING*/
 
     var env =  Map("a" -> 2, "b" -> 3, "k" -> false, "var_a" -> "a")
 

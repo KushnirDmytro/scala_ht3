@@ -79,7 +79,6 @@ object TinyLangV2Test extends Properties("V2Test"){
         Sum(Number(n), Number(k)).eval(env) == k + n
         mach.reduce(Sum(Number(n), Number(k)), env) == Number(n+k)
       Sum(Number(n), Number(k)).show == n.toString + " + " + k.toString
-      //} else true
     }
 
   property("Sum of Number and Bool does not reduce") =
@@ -87,7 +86,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Sum(Number(n), Bool(b)).eval(env) == None
       mach.reduce(Sum(Number(n), Bool(b)), env) == ErrorExpr
       Sum(Number(n), Bool(b)).show == n.toString + " + " + b.toString
-      //} else true
     }
 
   property("Sum of Bool and Number does not reduce") =
@@ -95,7 +93,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Sum( Bool(b), Number(n)).eval(env) == None
       mach.reduce(Sum( Bool(b), Number(n)), env) == ErrorExpr
       Sum(Bool(b), Number(n) ).show == b.toString + " + " + n.toString
-      //} else true
     }
 
 
@@ -104,7 +101,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Sum( Sum( Number(k), Number(n)), Number(n)).eval(env) == n + k + n
       mach.reductionStep(Sum( Sum( Number(k), Number(n)), Number(n)), env) == Sum(Number(n+k), Number(n))
       Sum(Sum( Number(k), Number(n)), Number(n) ).show == k.toString + " + " + n.toString + " + " + n.toString
-      //} else true
     }
 
   property("otherwise right Sum operand reduces") =
@@ -112,7 +108,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Sum( Number(n), Sum( Number(k), Number(n))).eval(env) == n + k + n
       mach.reductionStep(Sum(  Number(n), Sum( Number(k), Number(n))), env) == Sum(Number(n), Number(n+k))
       Sum( Number(n), Sum( Number(k), Number(n)) ).show == n.toString + " + " + k.toString + " + " + n.toString
-      //} else true
     }
 
 
@@ -124,7 +119,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Prod(Number(n), Number(k)).eval(env) == k*n
       mach.reduce(Prod(Number(n), Number(k)), env) == Number(n*k)
       Prod(Number(n), Number(k)).show == n.toString + " * " + k.toString
-      //} else true
     }
 
   property("PROD of Number and Bool does not reduce") =
@@ -132,7 +126,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Prod(Number(n), Bool(b)).eval(env) == None
       mach.reduce(Prod(Number(n), Bool(b)), env) == ErrorExpr
       Prod(Number(n), Bool(b)).show == n.toString + " * " + b.toString
-      //} else true
     }
 
   property("PROD of Bool and Number does not reduce") =
@@ -140,7 +133,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Prod( Bool(b), Number(n)).eval(env) == None
       mach.reduce(Prod( Bool(b), Number(n)), env) == ErrorExpr
       Prod(Bool(b), Number(n) ).show == b.toString + " * " + n.toString
-      //} else true
     }
 
 
@@ -149,7 +141,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Prod( Sum( Number(k), Number(n)), Number(n)).eval(env) == (n + k) * n
       mach.reductionStep(Sum( Sum( Number(k), Number(n)), Number(n)), env) == Prod(Number(n+k), Number(n))
       Prod(Sum( Number(k), Number(n)), Number(n) ).show == "(" + k.toString + " + " + n.toString + ")" + " * " + n.toString
-      //} else true
     }
 
   property("otherwise right PROD operand reduces") =
@@ -157,7 +148,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Prod( Number(n), Sum( Number(k), Number(n))).eval(env) == n * (k + n)
       mach.reductionStep(Prod(  Number(n), Sum( Number(k), Number(n))), env) == Prod(Number(n), Number(n+k))
       Prod( Number(n), Sum( Number(k), Number(n)) ).show == n.toString + " * " + "(" + k.toString + " + " + n.toString + ")"
-      //} else true
     }
 
 
@@ -167,7 +157,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Less(Number(n), Number(k)).eval(env) == (n < k)
       mach.reduce(Less(Number(n), Number(k)), env) == Bool(n<k)
       Less(Number(n), Number(k)).show == n.toString + " < " + k.toString
-      //} else true
     }
 
   property("Less of Number and Bool does not reduce") =
@@ -175,7 +164,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Less(Number(n), Bool(b)).eval(env) == None
       mach.reduce(Less(Number(n), Bool(b)), env) == ErrorExpr
       Less(Number(n), Bool(b)).show == n.toString + " < " + b.toString
-      //} else true
     }
 
   property("Less of Bool and Number does not reduce") =
@@ -183,7 +171,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Less( Bool(b), Number(n)).eval(env) == None
       mach.reduce(Less( Bool(b), Number(n)), env) == ErrorExpr
       Less(Bool(b), Number(n) ).show == b.toString + " < " + n.toString
-      //} else true
     }
 
 
@@ -192,7 +179,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Less( Sum( Number(k), Number(n)), Number(n)).eval(env) == ((n + k) < n)
       mach.reductionStep(Less( Sum( Number(k), Number(n)), Number(n)), env) == Less(Number(n+k), Number(n))
       Less(Sum( Number(k), Number(n)), Number(n) ).show == "(" + k.toString + " + " + n.toString + ")" + " < " + n.toString
-      //} else true
     }
 
   property("otherwise right Less operand reduces") =
@@ -200,7 +186,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       Less( Number(n), Sum( Number(k), Number(n))).eval(env) == (n < (k + n))
       mach.reductionStep(Less(  Number(n), Sum( Number(k), Number(n))), env) == Less(Number(n), Number(n+k))
       Less( Number(n), Prod( Number(k), Number(n)) ).show == n.toString + " < " + "(" + k.toString + " * " + n.toString + ")"
-      //} else true
     }
 
   // IfElse ===============================================================================
@@ -210,7 +195,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       mach.reduce( IfElse( Bool(b), Number(k), Number(n)), env) == (if (b) Number(k) else Number(n))
       IfElse( Bool(b), Number(k), Number(n)).show ==
         "{ (" + Bool(b).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
-      //} else true
     }
 
   property("IfElse for Number condition does not reduce") =
@@ -219,7 +203,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       mach.reduce( IfElse( Number(b), Number(k), Number(n)), env) == ErrorExpr
       IfElse( Number(b), Number(k), Number(n)).show ==
         "{ (" + Number(b).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
-      //} else true
     }
 
   property("IfElse for reducible condition reduces its condition") =
@@ -228,7 +211,6 @@ object TinyLangV2Test extends Properties("V2Test"){
       mach.reductionStep( IfElse(Less(Number(b), Number(k)), Number(k), Number(n)), env) == IfElse(Bool(b<k), Number(k), Number(n))
       mach.reductionStep(IfElse( Less(Number(b), Number(k)), Number(k), Number(n)), env).show ==
         "{ (" + Bool(b<k).show + ")_?_(" + Number(k).show + ")_:_(" + Number(n).show + ") }"
-      //} else true
     }
 
 
@@ -433,9 +415,7 @@ object TinyLangV2Test extends Properties("V2Test"){
                   Assign(s, Sum(Var(s), Number(1)))
                 ),
                 env)
-             // test1.contains(s)
               test1.contains(s)
-              //test1(s) == k
               test1(s) == k + 1
 
             val test2 = mach.run(
@@ -479,9 +459,7 @@ object TinyLangV2Test extends Properties("V2Test"){
             Assign(s, Sum(Var(s), Number(1)))
           ),
           env)
-        // test1.contains(s)
         test1.contains(s)
-        //test1(s) == k
         test1(s) == k + 1
 
         val test2 = mach.run(
@@ -520,17 +498,117 @@ object TinyLangV2Test extends Properties("V2Test"){
         test1(decrement) == 0
       } else true
     }
+  property("'While' does not execute thenStat if condition reduces to Bool(false) from the start") =
+    forAll { (n: Int, checker: String, decrement: String) =>
+      if ((n > 0)
+        && (n < 20000)
+        && (checker!=decrement)) {
+        val preperationEnv = mach.run(Assign(decrement, Number(0)), env)
+        val testEnv = mach.run(Assign(checker, Number(0)), preperationEnv)
+        val test1 = mach.run(
+          While( Less(Number(0), Var(decrement))
+            ,
+            Seq(
+              Assign(decrement, Sum( Var(decrement), Number(-1) )), //decrementation
+              Assign(checker, Sum( Var(checker), Number(1) )),
+              Assign("testKey", Number(0))
+            )
+          ),
+          testEnv)
+        !test1.contains("testKey")
+        test1.contains(checker)
+        test1.contains(decrement)
+        !test1.contains("__error")
+        test1(checker) == 0
+        test1(decrement) == 0
+      } else true
+    }
 
+  property("'While' statement fails for erroneous condition") =
+    forAll { (n: Int,b:Boolean , checker: String, decrement: String) =>
+      if ((n > 0)
+        && (n < 20000)
+        && (checker!=decrement)) {
+        val preperationEnv = mach.run(Assign(decrement, Number(n)), env)
+        val testEnv = mach.run(Assign(checker, Number(0)), preperationEnv)
+        val test1 = mach.run(
+          While( Less(Bool(b), Var(decrement))
+            ,
+            Seq(
+              Assign(decrement, Sum( Var(decrement), Number(-1) )), //decrementation
+              Assign(checker, Sum( Var(checker), Number(1) )),
+              Assign("testKey", Number(0))
+            )
+          ),
+          testEnv)
+        //println(test1("__error"))
+        !test1.contains("testKey")
+        test1.contains(checker)
+        test1.contains(decrement)
+        test1.contains("__error")
+        test1(checker) == 0
+        test1(decrement) == n
 
-/*
-// While
-test("'While' executes thenStat multiple times while condition reduces to Bool(true)") {
-test("'While' does not execute thenStat if condition reduces to Bool(false) from the start") {
-test("'While' statement fails for erroneous condition") {
-test("'While' statement fails for condition expression that reduces to Number") {
-test("'While' statement fails if thenStat statement fails") {
+      } else true
+    }
 
-*/
+  property("'While' statement fails for condition expression that reduces to Number") =
+    forAll { (n: Int,b:Boolean , checker: String, decrement: String, s:String) =>
+      if ((n > 0)
+        && (n < 20000)
+        && (checker!=decrement)) {
+        val preperationEnv = mach.run(Assign(decrement, Number(n)), env)
+        val prepEnv2 = mach.run(Assign(checker, Number(0)), preperationEnv)
+        val testEnv = mach.run(Assign(s, Number(n)), prepEnv2)
+        val test1 = mach.run(
+          While( Sum(Var(s), Number(n))
+            ,
+            Seq(
+              Assign(decrement, Sum( Var(decrement), Number(-1) )), //decrementation
+              Assign(checker, Sum( Var(checker), Number(1) )),
+              Assign("testKey", Number(0))
+            )
+          ),
+          testEnv)
+        //println(test1("__error"))
+        !test1.contains("testKey")
+        test1.contains(checker)
+        test1.contains(decrement)
+        test1.contains("__error")
+        test1(checker) == 0
+        test1(decrement) == n
+
+      } else true
+    }
+  property("'While' statement fails if thenStat statement fails") =
+    forAll { (n: Int,b:Boolean , checker: String, decrement: String, s:String) =>
+      if ((n > 0)
+        && (n < 20000)
+        && (checker!=decrement)) {
+        val preperationEnv = mach.run(Assign(decrement, Number(n)), env)
+        val prepEnv2 = mach.run(Assign(checker, Number(0)), preperationEnv)
+        val testEnv = mach.run(Assign(s, Number(n)), prepEnv2)
+        val test1 = mach.run(
+          While( Sum(Var(s), Number(n))
+            ,
+            Seq(
+              Assign(decrement, Sum( Var(decrement), Number(-1) )),
+              Assign(decrement, Var(decrement)), // suppose to be prohibited and cause fail
+              Assign("testKey", Number(0))
+            )
+          ),
+          testEnv)
+        //println(test1("__error"))
+        !test1.contains("testKey")
+        test1.contains(checker)
+        test1.contains(decrement)
+        test1.contains("__error")
+        test1(checker) == 0
+        test1(decrement) == n
+
+      } else true
+    }
+
 
 
   property("SumCalculatesOk") = forAll { (n:Int, d:Int) =>
@@ -549,12 +627,5 @@ test("'While' statement fails if thenStat statement fails") {
 
   }
 
-  /*
-  property("NumberConstructAndEval") = forAll { (b:Boolean) =>
-    Bool(b).eval == b
-
-    Bool(b).eval == b
-  }
-  */
 
 }

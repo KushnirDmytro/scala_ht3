@@ -499,7 +499,9 @@ object TinyLangV2Test extends Properties("V2Test"){
 
   property("'While' executes thenStat multiple times while condition reduces to Bool(true)") =
     forAll { (n: Int, checker: String, decrement: String) =>
-      if ((n > 0) && (n < 200) && (checker!=decrement)) {
+      if ((n > 0)
+        && (n < 20000)
+        && (checker!=decrement)) {
         val preperationEnv = mach.run(Assign(decrement, Number(n)), env)
         val testEnv = mach.run(Assign(checker, Number(0)), preperationEnv)
         val test1 = mach.run(

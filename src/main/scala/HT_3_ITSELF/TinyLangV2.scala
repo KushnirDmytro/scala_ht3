@@ -233,6 +233,7 @@ object TinyLangV2 {
 
   final class Machine {
 
+    /*
     def executionStep(stat: Expr, env: Map[String, Any]):(Stat, Map[String, Any]) =
       (stat,env) match {
         case (st: Stat, _) => (st, env) match {
@@ -284,19 +285,75 @@ object TinyLangV2 {
         }
       }
 
-    def run(stat: Stat, env:Map[String, Any]): Map[String, Any] = {
-      //println(stat.show)
-      if (stat.isReduciable)
-        executionStep(stat, env) match {
 
-        case (_, newEnv) if newEnv.contains("__error") => newEnv + ("END" -> "ErrorTermination")
-        case (e:END, newEnv) => newEnv + ("END" -> "OK")
-        case (expr, newEnv) if expr == stat => newEnv + ("__error" -> "LiveLoopDangerTermination")
-        case (expr:Stat, newEnv) => run(expr, newEnv)
-        case (_,newEnv) => newEnv + ("__error" -> "UnknownState","END" -> "ErrorTermination")
-      }
-      else
-        env
+    */
+
+
+    def returnEnv(env:Map[String, Any]): Map[String, Any] ={
+      if (env.contains("OldState"))
+        env- "OldState"
+      else env
+    }
+
+    def run(stat: Stat, OldEnv:Map[String, Any]): Map[String, Any] = {
+      //println(stat.show)
+     if (stat.isReduciable){
+        /*executionStep(stat, env)*/ //match {
+
+        (stat,OldEnv + ("OldState" -> stat.toString)) match {
+          case (_, newEnv) if newEnv.contains("__error") => newEnv //ALLREADY WITTH ERROR
+          case (expr: END, newEnv) => newEnv
+          case (expr, newEnv)
+            if OldEnv.contains("OldState") && (OldEnv("OldState") == stat.toString)
+          => newEnv + ("__error" -> "LiveLoopDangerTermination")
+
+          case (st: Stat, _) => (st, OldEnv) match {
+
+            case (While(cond: Expr, thenStat: Seq), e) => cond.eval(e) match {
+              case rez: Some[Any] => rez.get match {
+                case r: Boolean => if (r)
+                   run( stat, e ++ run(thenStat, e))
+                else returnEnv(e)
+                case _ => returnEnv(e) + ("__error" -> "ConditionSeemsNOTBOOL")
+              }
+              case _ => returnEnv(e) + ("__error" -> "WhileCondError")
+            }
+
+            case (Seq(head, tail@_*), e) => (head, tail) match {
+              case (h: Stat, _) =>
+                run(Seq(tail: _*), returnEnv(e) ++ run(head, e))
+              case (h: Stat) => returnEnv(e) ++ run(head, e)
+            }
+            case (Seq(), e) => /*Assume empty*/ returnEnv(e)
+
+
+            case (If(cond, thenStat: Stat, elseStat: Stat), e) =>
+              cond.eval(e) match {
+                case s: Some[Any] => s.get match {
+                  case (b: Boolean) => if (b)
+                    run(thenStat, e)
+                  else
+                    run(elseStat, e)
+                  case _ =>  returnEnv(e) + ("__error" -> "IfElseConditionReducitonWrongType")
+                }
+                case _ => returnEnv(e) + ("__error" -> "IfElseConditionReducitonToNone")
+              }
+
+
+            case (Assign(s: String, v: Expr), e) =>
+              (s, v) match {
+                case (_, v: Stat) => returnEnv(e) + (s -> v) //"funcion" assignment. Let it be
+                case (_, Var(key: String)) => returnEnv(e) + (s -> key)
+                case (_, v: Expr) => v.eval(e) match {
+                  case rez: Some[Any] => returnEnv(e) + (s -> rez.get)
+                  case _ => returnEnv(e) + ("__error" -> "AssignmentOfErrorAttempt")
+                }
+                case (_, _) => returnEnv(e) + ("__error" -> "UnknownValueToAssign")
+              }
+          }
+        }
+        }
+      else returnEnv(OldEnv)
     }
 
     def ReduceToUnar(expr: Expr, env:Map[String, Any]):Expr = expr.eval(env) match {

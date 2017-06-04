@@ -10,20 +10,16 @@ import scala.util.Random
   */
 object HT_4_Object{
 
-  def sinSeq (Xfrom:Double,
-              Xto:Double,
-              Yfrom:Double,
-              Yto:Double,
-              totalNumberOfPoints:Int):Double = {
-   val boxSize = ((Yto - Yfrom) * (Xto - Xfrom))
+
+  def sequentialIntegral(totalNumberOfPoints:Int,
+                         tuple2: Tuple2[Double, Double]*):Double = {
+   val boxSize = getSizeOfBox(tuple2:_*)
     println(boxSize)
 
     val hits = countPointsUnderIntegral(
-      Xfrom,
-      Xto,
-      Yfrom,
-      Yto,
-      totalNumberOfPoints)
+      totalNumberOfPoints,
+      (x:Double) => math.sin(x),
+    tuple2)
 
     println(s"hits $hits")
 
@@ -36,36 +32,74 @@ object HT_4_Object{
     rez
   }
 
-  def getSizeOfBox( tuple2: Tuple2[Double, Double]*):Double = {
-    0.0
+  def getSizeOfBox(tuple2: (Double, Double)*):Double = {
+
+    tuple2.foldLeft(1.0)((acc, elem) => acc * (elem._2 - elem._1))
+
+  }
+
+  def argumentsAreValid(tuple2: (Double, Double)*):Boolean = {
+
+    val sizeCheck = tuple2.nonEmpty
+    val pairwiseCheck = tuple2.foldLeft(true)( (acc, el) => acc && (el._2 > el._1) )
+    sizeCheck && pairwiseCheck
+  }
+
+  def toSizesArray(
+                    tuple2:(Double, Double)*
+                  ) : Seq[Double] = {
+    tuple2.map ( el => el._2 - el._1 )
+  }
+  def toStartOffsetsArr(
+    tuple2:(Double, Double)*
+  ) : Seq[Double] = {
+    tuple2.map ( el => el._1 )
   }
 
 
-  def countPointsUnderIntegral(Xfrom:Double,
-                               Xto:Double,
-                              Yfrom:Double,
-                              Yto:Double,
-                               totalNumberOfPoints:Int):Int ={
 
-    if( (Xto < Xfrom) || (Yto < Yfrom) )
+
+  def countPointsUnderIntegral(totalNumberOfPoints:Int,
+                               func: Double => Double,
+                               tuple2: Seq[(Double, Double)]
+                               ):Int ={
+
+    val SinPiHalf = func(- math.Pi / 2)
+    println(s"sinPihalf $SinPiHalf")
+
+
+    if( !argumentsAreValid(tuple2: _ *) )
       throw new InvalidArgumentException(Array("Integration limits fail"))
     else {
 
         val rndX = new Random
         val rndY = new Random
-        val Xsize = Xto - Xfrom
-        val Ysize = Yto - Yfrom
+        val sizeArr = toSizesArray(tuple2: _*)
+        val begArr = toStartOffsetsArr(tuple2: _*)
 
-        def simulation(hits: Int,
+      println(s"SizeArr $sizeArr")
+      val sALast = sizeArr.last
+      println(s"lastSize $sALast")
+      val sAFirst = sizeArr.head
+      println(s"FirstSize $sAFirst")
+
+
+      println(s"BOA $begArr")
+      val BOAlast = begArr.last
+      println(s"lastSize $BOAlast")
+      val BOAfirst = begArr.head
+      println(s"FirstSize $BOAfirst")
+
+      def simulation(hits: Int,
                        pointsGenerated: Int): Int = {
 
           if (pointsGenerated >= totalNumberOfPoints)
             hits
 
           else {
-            val x = rndX.nextDouble() * Xsize + Xfrom
-            val y = rndY.nextDouble() * Ysize + Yfrom
-            val fv /*function value*/ = math.sin(x)
+            val x = (rndX.nextDouble() * sizeArr.head) + begArr.head
+            val y = (rndY.nextDouble() * sizeArr.last) + begArr.last
+            val fv /*function value*/ = func(x)
 
             simulation(
               hits +
@@ -94,25 +128,7 @@ object HT_4_Object{
 
 
 
-  def countPointsInsideCircle(totalNumberOfPoints:Int):Int ={
-    val rndX = new Random
-    val rndY = new Random
-
-    def simulation(hits:Int, pointsGenerated:Int):Int ={
-
-      if (pointsGenerated >= totalNumberOfPoints)
-        hits
-      else {
-        val x = rndX.nextDouble()
-        val y = rndY.nextDouble()
-
-        simulation(hits + (if (x*x + y*y <= 1) 1 else 0), pointsGenerated+1)
-      }
-    }
-    simulation(0,0)
-  }
-
-
+/*
   def piPar(totalNumberOfPoints:Int) = {
 
 
@@ -149,7 +165,7 @@ object HT_4_Object{
 
     splitTaskSize(totalNumberOfPoints) * 4.0 / totalNumberOfPoints
   }
-
+*/
 
   //  def pNorm(a: Array[Int], p: Double): Int = power(sumSegment(a, p, 0, a.length), 1/p ) ;
 
@@ -157,19 +173,37 @@ object HT_4_Object{
 
   def main(args: Array[String]): Unit = {
 
-    val totalNumberOfPoints = 100000000
-
-    val sinval = math.sin(math.Pi/2)
-    println(s"sin= $sinval")
+    val totalNumberOfPoints = 1000000
 
 
-    println( sinSeq(0 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints))
+    val boxSize = getSizeOfBox((0 , math.Pi/2), (-1, 1), (0, 2))
+    println(boxSize)
 
-    println( sinSeq(-math.Pi/2 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints))
+    val sizeArray = toSizesArray((0.0 , math.Pi/2), (-1.0, 1.0), (0.0, 2.0))
 
-    println( sinSeq(-math.Pi/2 , 0, -1.0, 1.0, totalNumberOfPoints))
+    println(sizeArray)
+
+    val check = argumentsAreValid((0 , math.Pi/2), (-1, 1), (0, 2))
+
+    println(check)
+
+    val check2 = argumentsAreValid((0 , math.Pi/2), (-1, -31), (0, 2))
+
+    println(check2)
+
+    val begArr = toStartOffsetsArr((0 , math.Pi/2), (-1, -31), (0, 2))
+
+    println(begArr)
+
+    println( sequentialIntegral( totalNumberOfPoints, (0 , math.Pi/2), (-1.0, 1.0)))
+
+    println( sequentialIntegral(totalNumberOfPoints, (-math.Pi/2 , math.Pi/2), (-1.0, 1.0)) )
 
 
+    println( sequentialIntegral(totalNumberOfPoints, (-math.Pi/2 , 0), (-1.0, 1.0)) )
+
+
+    /*
     val standartConfig = config(
       Key.exec.minWarmupRuns -> 100,
       Key.exec.maxWarmupRuns -> 500,
@@ -177,12 +211,6 @@ object HT_4_Object{
       Key.verbose -> true
     ) withWarmer(new Warmer.Default)
 
-
-/*
-    val seqPi = standartConfig measure {
-      pi(totalNumberOfPoints)
-    }
-*/
     val seqSin = standartConfig measure {
       sinSeq(-math.Pi/2 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints)
     }
@@ -192,7 +220,6 @@ object HT_4_Object{
     //println(s"PiCountPar $ParPi")
 
 
-    /*
         val ParPi = standartConfig measure {
           piPar(totalNumberOfPoints)
         }

@@ -11,14 +11,14 @@ import scala.util.Random
 object HT_4_Object{
 
 
-  def sequentialIntegral(totalNumberOfPoints:Int,
-                         tuple2: Tuple2[Double, Double]*):Double = {
+  def sequentialIntegral(func: (Seq[Double]) => Double,
+                          totalNumberOfPoints:Int,
+                         tuple2: Tuple2[Double, Double]*): Double = {
    val boxSize = getSizeOfBox(tuple2:_*)
     println(boxSize)
 
-    val hits = countPointsUnderIntegral(
+    val hits = countPointsUnderIntegral(func,
       totalNumberOfPoints,
-      (x:Double) => math.sin(x),
     tuple2)
 
     println(s"hits $hits")
@@ -33,13 +33,10 @@ object HT_4_Object{
   }
 
   def getSizeOfBox(tuple2: (Double, Double)*):Double = {
-
     tuple2.foldLeft(1.0)((acc, elem) => acc * (elem._2 - elem._1))
-
   }
 
   def argumentsAreValid(tuple2: (Double, Double)*):Boolean = {
-
     val sizeCheck = tuple2.nonEmpty
     val pairwiseCheck = tuple2.foldLeft(true)( (acc, el) => acc && (el._2 > el._1) )
     sizeCheck && pairwiseCheck
@@ -50,22 +47,23 @@ object HT_4_Object{
                   ) : Seq[Double] = {
     tuple2.map ( el => el._2 - el._1 )
   }
+
   def toStartOffsetsArr(
-    tuple2:(Double, Double)*
-  ) : Seq[Double] = {
+    tuple2:(Double, Double)* ) : Seq[Double] = {
     tuple2.map ( el => el._1 )
   }
 
 
 
+  def generateArgs(random: Random, tuple2: (Double, Double)*):Seq[(Double)] = {
+    tuple2.map(el => random.nextDouble() * (el._2 - el._1) + el._1 )
+  }
 
-  def countPointsUnderIntegral(totalNumberOfPoints:Int,
-                               func: Double => Double,
+
+  def countPointsUnderIntegral(func: (Seq[Double]) => Double,
+                               totalNumberOfPoints:Int,
                                tuple2: Seq[(Double, Double)]
                                ):Int ={
-
-    val SinPiHalf = func(- math.Pi / 2)
-    println(s"sinPihalf $SinPiHalf")
 
 
     if( !argumentsAreValid(tuple2: _ *) )
@@ -74,21 +72,15 @@ object HT_4_Object{
 
         val rndX = new Random
         val rndY = new Random
-        val sizeArr = toSizesArray(tuple2: _*)
-        val begArr = toStartOffsetsArr(tuple2: _*)
+     //   val sizeArr = toSizesArray(tuple2: _*)
+       // val begArr = toStartOffsetsArr(tuple2: _*)
 
-      println(s"SizeArr $sizeArr")
-      val sALast = sizeArr.last
-      println(s"lastSize $sALast")
-      val sAFirst = sizeArr.head
-      println(s"FirstSize $sAFirst")
+     // println(s"SizeArr $sizeArr")
+   //   val sALast = sizeArr.last
+   //   println(s"lastSize $sALast")
+   //   val sAFirst = sizeArr.head
+    //  println(s"FirstSize $sAFirst")
 
-
-      println(s"BOA $begArr")
-      val BOAlast = begArr.last
-      println(s"lastSize $BOAlast")
-      val BOAfirst = begArr.head
-      println(s"FirstSize $BOAfirst")
 
       def simulation(hits: Int,
                        pointsGenerated: Int): Int = {
@@ -97,8 +89,10 @@ object HT_4_Object{
             hits
 
           else {
-            val x = (rndX.nextDouble() * sizeArr.head) + begArr.head
-            val y = (rndY.nextDouble() * sizeArr.last) + begArr.last
+
+            val x = generateArgs(rndX, tuple2.tail: _*)
+            val y = generateArgs(rndX, tuple2.head).head
+
             val fv /*function value*/ = func(x)
 
             simulation(
@@ -171,6 +165,8 @@ object HT_4_Object{
 
   // def pNormParallel(a: Array[Int], p: Double): Int = power(sumSegmentPar(a, p, 0, a.length), 1/p ) ;
 
+  def sinFunc(arg:Double*):Double = math.sin(arg.head)
+
   def main(args: Array[String]): Unit = {
 
     val totalNumberOfPoints = 1000000
@@ -195,12 +191,30 @@ object HT_4_Object{
 
     println(begArr)
 
-    println( sequentialIntegral( totalNumberOfPoints, (0 , math.Pi/2), (-1.0, 1.0)))
+    val fSin:  (Seq[Double]) => Double = (x) => {math.sin(x.head)}
+    val fCos:  (Seq[Double]) => Double = (x) => {math.cos(x.head)}
 
-    println( sequentialIntegral(totalNumberOfPoints, (-math.Pi/2 , math.Pi/2), (-1.0, 1.0)) )
+    val fSumofTwo: (Seq[Double]) => Double = (x) => {x.head + x.tail.head}
+    val fprodOfTwo: (Seq[Double]) => Double = (x) => {x.head * x.tail.head}
 
 
-    println( sequentialIntegral(totalNumberOfPoints, (-math.Pi/2 , 0), (-1.0, 1.0)) )
+    println( sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
+
+    println( sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(-math.Pi/2 , math.Pi/2)) )
+
+    println( sequentialIntegral( fSin , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
+
+    println( sequentialIntegral( fCos, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
+
+    println( sequentialIntegral( fCos, totalNumberOfPoints, (-1.0, 1.0),(-math.Pi/2 , math.Pi/2)) )
+
+    println( sequentialIntegral( fCos , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
+
+    println( sequentialIntegral( fSumofTwo , totalNumberOfPoints, (0, 2.0), (0 , 1), (0, 1)) )
+
+    println( sequentialIntegral( fprodOfTwo , totalNumberOfPoints, (0, 1.0), (0 , 1), (0, 1)) )
+
+    // println( sequentialIntegral( fSin , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
 
 
     /*

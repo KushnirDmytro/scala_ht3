@@ -1,5 +1,6 @@
 package HT_4
 
+import com.sun.javaws.exceptions.InvalidArgumentException
 import org.scalameter._
 
 import scala.util.Random
@@ -7,48 +8,167 @@ import scala.util.Random
 /**
   * Created by d1md1m on 19.05.17.
   */
-object HT_4_Object {
+object HT_4_Object{
 
+  def sinSeq (Xfrom:Double,
+              Xto:Double,
+              Yfrom:Double,
+              Yto:Double,
+              totalNumberOfPoints:Int):Double = {
+   val boxSize = ((Yto - Yfrom) * (Xto - Xfrom))
+    println(boxSize)
 
+    val hits = countPointsUnderIntegral(
+      Xfrom,
+      Xto,
+      Yfrom,
+      Yto,
+      totalNumberOfPoints)
 
-  def power(x: Int, p: Double): Int =
-    math.exp(p * math.log(math.abs(x))).toInt
+    println(s"hits $hits")
 
+    val coef = hits.toDouble / totalNumberOfPoints
 
+    println(s"coef $coef")
 
-  def sumSegment(a: Array[Int], p: Double,
-                 from: Int, to: Int): Int = {
-    def iter(sum: Int, index: Int): Int =
-      if (index >= to) sum
-      else iter(sum + power(a(index), p), index + 1)
+    val rez = coef * boxSize
+    println(s"rez $rez")
+    rez
+  }
 
-    iter(0, from)
+  def getSizeOfBox( tuple2: Tuple2[Double, Double]*):Double = {
+    0.0
   }
 
 
-  var treshhold = 1000
+  def countPointsUnderIntegral(Xfrom:Double,
+                               Xto:Double,
+                              Yfrom:Double,
+                              Yto:Double,
+                               totalNumberOfPoints:Int):Int ={
 
-  def sumSegmentPar(a: Array[Int], p: Double,
-                    from: Int, to: Int): Int = {
-    if (to - from < treshhold)
-      sumSegment(a,p, from, to)
-    else{
-      val middle = from + (to - from )/2
-      val (sum1, sum2) = parallel(sumSegmentPar(a,p, from, middle), sumSegmentPar(a,p, middle, to) )
-      sum1 + sum2
+    if( (Xto < Xfrom) || (Yto < Yfrom) )
+      throw new InvalidArgumentException(Array("Integration limits fail"))
+    else {
+
+        val rndX = new Random
+        val rndY = new Random
+        val Xsize = Xto - Xfrom
+        val Ysize = Yto - Yfrom
+
+        def simulation(hits: Int,
+                       pointsGenerated: Int): Int = {
+
+          if (pointsGenerated >= totalNumberOfPoints)
+            hits
+
+          else {
+            val x = rndX.nextDouble() * Xsize + Xfrom
+            val y = rndY.nextDouble() * Ysize + Yfrom
+            val fv /*function value*/ = math.sin(x)
+
+            simulation(
+              hits +
+                (if
+              (y > 0 && y < fv )
+                1
+              else if
+              (y < 0 && y > fv )
+                -1
+                else
+                0
+                ),
+              pointsGenerated + 1
+            )
+
+          }
+        }
+
+        val hitsCounted = simulation(0, 0)
+    //  println(s"CountedPoints $hitsCounted")
+    //  println(s"totalPoints $totalNumberOfPoints")
+      hitsCounted
+      }
+
+  }
+
+
+
+  def countPointsInsideCircle(totalNumberOfPoints:Int):Int ={
+    val rndX = new Random
+    val rndY = new Random
+
+    def simulation(hits:Int, pointsGenerated:Int):Int ={
+
+      if (pointsGenerated >= totalNumberOfPoints)
+        hits
+      else {
+        val x = rndX.nextDouble()
+        val y = rndY.nextDouble()
+
+        simulation(hits + (if (x*x + y*y <= 1) 1 else 0), pointsGenerated+1)
+      }
+    }
+    simulation(0,0)
+  }
+
+
+  def piPar(totalNumberOfPoints:Int) = {
+
+
+    val ((pi1, pi2), (pi3, pi4)) =
+
+      parallel(
+        parallel(
+          countPointsInsideCircle(totalNumberOfPoints/4), countPointsInsideCircle(totalNumberOfPoints/4)
+        ),
+        parallel(
+          countPointsInsideCircle(totalNumberOfPoints/4), countPointsInsideCircle(totalNumberOfPoints/4)
+        )
+      )
+
+    4.0 * (pi1 + pi2 + pi3 + pi4) /totalNumberOfPoints
+  }
+
+
+  def piParOptimalThreadsNumber(totalNumberOfPoints:Int):Double = {
+
+    val optimalTaskSize = totalNumberOfPoints / Runtime.getRuntime.availableProcessors()
+
+    def splitTaskSize(taskSize:Int):Int ={
+      if (taskSize <= optimalTaskSize)
+        countPointsInsideCircle(taskSize)
+      else {
+        val (r1, r2) = parallel(
+          splitTaskSize(taskSize/ 2),
+          splitTaskSize(taskSize / 2)
+        )
+        r1 + r2
+      }
     }
 
+    splitTaskSize(totalNumberOfPoints) * 4.0 / totalNumberOfPoints
   }
 
 
-//  def pNorm(a: Array[Int], p: Double): Int = power(sumSegment(a, p, 0, a.length), 1/p ) ;
+  //  def pNorm(a: Array[Int], p: Double): Int = power(sumSegment(a, p, 0, a.length), 1/p ) ;
 
- // def pNormParallel(a: Array[Int], p: Double): Int = power(sumSegmentPar(a, p, 0, a.length), 1/p ) ;
+  // def pNormParallel(a: Array[Int], p: Double): Int = power(sumSegmentPar(a, p, 0, a.length), 1/p ) ;
 
   def main(args: Array[String]): Unit = {
-    val rnd = new Random
-    val length = 10000000
-    val input = (0 until length).map(_ * rnd.nextInt()).toArray
+
+    val totalNumberOfPoints = 100000000
+
+    val sinval = math.sin(math.Pi/2)
+    println(s"sin= $sinval")
+
+
+    println( sinSeq(0 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints))
+
+    println( sinSeq(-math.Pi/2 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints))
+
+    println( sinSeq(-math.Pi/2 , 0, -1.0, 1.0, totalNumberOfPoints))
+
 
     val standartConfig = config(
       Key.exec.minWarmupRuns -> 100,
@@ -58,87 +178,37 @@ object HT_4_Object {
     ) withWarmer(new Warmer.Default)
 
 
-    def countSum (a: Array[Int], s: Int, pos:Int, to : Int):Int = {
-      if (pos >= to) {
-       // println(s"Sum is $s ")
-        s
-      }
-      else
-        countSum(a, s + a(pos), pos + 1, to)
+/*
+    val seqPi = standartConfig measure {
+      pi(totalNumberOfPoints)
+    }
+*/
+    val seqSin = standartConfig measure {
+      sinSeq(-math.Pi/2 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints)
     }
 
-    //integraton in 2D
-    // TODO proceed to integration in n.dimentions
-    def IntegralValue (From: Double, To:Double, Func: Any => Double, iterations:Int):Int = {
-      val rnd = new Random()
 
-      def rand = Random
-      def recursiveStep(iterLeft:Int, result:Int): Int ={
+    println(s"sinConsCount $seqSin")
+    //println(s"PiCountPar $ParPi")
 
-        if (iterLeft <= 0)
-        result
-        else
-        {
-          val X = rnd.nextDouble()
-          val Y = rnd.nextDouble()
-          println(s"X: $X \n Y: $Y")
-          if ((math.pow(X, 2) + math.pow(X, 2)) < 1.0)
-            recursiveStep(iterLeft - 1, result)
-          else
-            recursiveStep(iterLeft - 1, result)
+
+    /*
+        val ParPi = standartConfig measure {
+          piPar(totalNumberOfPoints)
         }
-      }
-      recursiveStep(iterations, 0)
-    }
 
+        val ParPiOptThreadsN = standartConfig measure {
+          piParOptimalThreadsNumber(totalNumberOfPoints)
+        }
 
+        println(s"PiSecCount $seqPi")
+        println(s"PiCountPar $ParPi")
+        println(s"PiCountPar $ParPiOptThreadsN")
 
-    def IntegralValuePar (from: Double, to:Double, Func: Any => Double, iterations:Int, globalIter:Int):Int = {
+        println(s"speedRatio1vs2 ${seqPi.value/ParPi.value}")
+        println(s"speedRatio2vs3 ${ParPi.value/ParPiOptThreadsN.value}")
 
-      val treshhold = globalIter / Runtime.getRuntime.availableProcessors()
-
-      if (iterations <= treshhold)
-        IntegralValue(from, to, Func, iterations)
-      else
-        IntegralValuePar(from, to , Func, iterations/2, globalIter)
-
-
-    }
-
-
-
-    def countAvg (a: Array[Int], s: Int, n:Int ,pos:Int, to:Int):Double = {
-      if (pos >= to) {
-      //  println(s"Avg is ${s / n}")
-        s / n
-      }
-      else
-        countAvg(a, s + a(pos), n+1 , pos + 1, to)
-    }
-
-    val mid = input.length / 2
-
-    val paralellTimeSeparate = standartConfig.measure {
-      parallel(countSum(input,0,0, mid), countSum(input,0,mid, input.length))
-      parallel(countAvg(input,0,0,0, mid), countAvg(input,0,0,mid, input.length))
-    }
-
-
-    val paralellTimeSimultanious = standartConfig.measure {
-      parallel(countSum(input,0,0,input.length), countAvg(input,0,0,0, input.length) )
-    }
-
-
-    println(s"paralellTimeSimultanious1Run $paralellTimeSimultanious")
-
-    println(s"paralellTimeSeparate2runs $paralellTimeSeparate")
-
-    println(s"speedRatio ${paralellTimeSimultanious.value / paralellTimeSeparate.value}")
-    println(s"number of elements $length")
-
-    var proc = Runtime.getRuntime.availableProcessors()
-    print(s"PROCESSORS # $proc")
-
+    */
   }
 
 }

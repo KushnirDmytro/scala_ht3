@@ -34,10 +34,42 @@ object MontecarloPiSimmulationAsAnExample {
 
 
   def piPar(totalNumberOfPoints:Int) = {
-    val (pi1, pi2) = parallel(countPointsInsideCircle(totalNumberOfPoints/2), countPointsInsideCircle(totalNumberOfPoints/2))
 
-    4 * (pi1 + pi2) /totalNumberOfPoints
+
+    val ((pi1, pi2), (pi3, pi4)) =
+
+      parallel(
+        parallel(
+          countPointsInsideCircle(totalNumberOfPoints/4), countPointsInsideCircle(totalNumberOfPoints/4)
+        ),
+        parallel(
+          countPointsInsideCircle(totalNumberOfPoints/4), countPointsInsideCircle(totalNumberOfPoints/4)
+        )
+      )
+
+    4.0 * (pi1 + pi2 + pi3 + pi4) /totalNumberOfPoints
   }
+
+
+  def piParOptimalThreadsNumber(totalNumberOfPoints:Int):Double = {
+
+    val optimalTaskSize = totalNumberOfPoints / Runtime.getRuntime.availableProcessors()
+
+    def splitTaskSize(taskSize:Int):Int ={
+      if (taskSize <= optimalTaskSize)
+        countPointsInsideCircle(taskSize)
+      else {
+        val (r1, r2) = parallel(
+          splitTaskSize(taskSize/ 2),
+          splitTaskSize(taskSize / 2)
+        )
+        r1 + r2
+      }
+    }
+
+    splitTaskSize(totalNumberOfPoints) * 4.0 / totalNumberOfPoints
+  }
+
 
 //  def pNorm(a: Array[Int], p: Double): Int = power(sumSegment(a, p, 0, a.length), 1/p ) ;
 
@@ -48,6 +80,8 @@ object MontecarloPiSimmulationAsAnExample {
     val totalNumberOfPoints = 1000000
 
     println(pi(totalNumberOfPoints))
+    println(piPar(totalNumberOfPoints))
+    println(piParOptimalThreadsNumber(totalNumberOfPoints))
 
 
 
@@ -66,16 +100,19 @@ object MontecarloPiSimmulationAsAnExample {
 
 
     val ParPi = standartConfig measure {
-      //TODO make paralell
       piPar(totalNumberOfPoints)
     }
 
+    val ParPiOptThreadsN = standartConfig measure {
+      piParOptimalThreadsNumber(totalNumberOfPoints)
+    }
 
     println(s"PiSecCount $seqPi")
-
     println(s"PiCountPar $ParPi")
+    println(s"PiCountPar $ParPiOptThreadsN")
 
-    println(s"speedRatio ${seqPi.value/ParPi.value}")
+    println(s"speedRatio1vs2 ${seqPi.value/ParPi.value}")
+    println(s"speedRatio2vs3 ${ParPi.value/ParPiOptThreadsN.value}")
 
 
   }

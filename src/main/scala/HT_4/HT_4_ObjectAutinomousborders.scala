@@ -242,8 +242,8 @@ object HT_4_ObjectAutoBorders{
     }
 
 
-    println(s"PiSecCount $seqIntegral")
-    println(s"PiCountPar $ParIntegral")
+    println(s"seqIntegral $seqIntegral")
+    println(s"parIntegral $ParIntegral")
 
     println(s"speedRatio1vs2 ${seqIntegral.value/ParIntegral.value}")
 

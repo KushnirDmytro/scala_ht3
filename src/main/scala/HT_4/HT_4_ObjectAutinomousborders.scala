@@ -1,6 +1,7 @@
 
 package HT_4
 
+import HT_4.HT_4_Object.{countPointsUnderIntegral, getSizeOfBox, integralOptimalThreadsNumber}
 import com.sun.javaws.exceptions.InvalidArgumentException
 import org.scalameter._
 
@@ -16,22 +17,19 @@ object HT_4_ObjectAutoBorders{
                           totalNumberOfPoints:Int,
                          tuple2: Tuple2[Double, Double]*): Double = {
 
-    val (hits, empiricMin, empiricMax) = countPointsUnderIntegral(func,
+    val (empiricMin, empiricMax) = HeatMinMax(func,
       totalNumberOfPoints,
     tuple2)
 
-    println(s"hits $hits")
+    //println(empiricMin, empiricMax)
 
-    val coef = hits.toDouble / totalNumberOfPoints
+    val hits = countPointsUnderIntegral(func,
+      totalNumberOfPoints,Tuple2(empiricMin, empiricMax), tuple2: _*)
 
-    println(s"coef $coef")
+    val argsBoxSize = getSizeOfSampleSpace(tuple2: _* ) //rem
 
-    val argsBoxSize = getSizeOfSampleSpace(tuple2.tail: _* ) //rem
-    println(s"ArgsBoxSize: $argsBoxSize")
+    hits.toDouble / totalNumberOfPoints * argsBoxSize * (empiricMax - empiricMin)
 
-    val rez = coef * argsBoxSize * (empiricMax - empiricMin)
-    println(s"rez $rez")
-    rez
   }
 
   def getSizeOfSampleSpace(tuple2: (Double, Double)*):Double = {
@@ -62,35 +60,102 @@ object HT_4_ObjectAutoBorders{
   }
 
 
-  def countPointsUnderIntegral(func: (Seq[Double]) => Double,
+  def HeatMinMax(func: (Seq[Double]) => Double,
                                totalNumberOfPoints:Int,
                                tuple2: Seq[(Double, Double)]
-                               ):(Int, Double, Double) ={
+                              ):(Double, Double) ={
 
 
     if( !argumentsAreValid(tuple2: _ *) )
       throw new InvalidArgumentException(Array("Integration limits fail"))
     else {
 
-        val rndX = new Random
-        val rndY = new Random
+      val rndX = new Random
 
+      val presision = totalNumberOfPoints / 10 // Direct limitation By Amdal's Law
+      def simulation(
+                     pointsGenerated: Int,
+                     detectedMin:Double,
+                     detectedMax:Double,
+                    lastDetectedMin:Int,
+                     lastDetectedMax:Int
+                    ): (Double, Double) = {
+
+        if ( ((pointsGenerated -lastDetectedMin > presision) &&
+          (pointsGenerated - lastDetectedMax > presision)) ||
+          (pointsGenerated >= totalNumberOfPoints) )
+        {
+
+        //  println(s"HEat run $pointsGenerated")
+          (detectedMin, detectedMax)
+        }
+
+        else {
+
+          val x = generateArgs(rndX, tuple2: _*)
+
+          val fv /*function value*/ = func(x)
+
+          if (fv < detectedMin)
+            simulation(
+              pointsGenerated + 1,
+              fv,
+              detectedMax,
+              pointsGenerated + 1,
+              lastDetectedMax
+            )
+            else
+          if (fv> detectedMax)
+            simulation(
+              pointsGenerated + 1,
+              detectedMin,
+              fv,
+              lastDetectedMax,
+              pointsGenerated + 1
+            )
+            else
+          simulation(
+            pointsGenerated + 1,
+            detectedMin,
+            detectedMax,
+            lastDetectedMin,
+            lastDetectedMax
+          )
+
+        }
+      }
+
+      simulation(0, Double.MaxValue, Double.MinValue, 0, 0)
+    }
+
+  }
+
+
+  def countPointsUnderIntegral(func: (Seq[Double]) => Double,
+                               totalNumberOfPoints:Int,
+                               empiricBorders:Tuple2[Double, Double],
+                               tuple2: (Double, Double)*
+                               ):(Int) ={
+
+
+
+      val rndY = new Random
+    val rndX = new Random
 
       def simulation(hits: Int,
-                     pointsGenerated: Int,
-                    detectedMin:Double,
-                    detectedMax:Double
-                    ): (Int, Double, Double) = {
+                     pointsGenerated: Int
+                    ): Int = {
 
           if (pointsGenerated >= totalNumberOfPoints)
-            (hits, detectedMin, detectedMax)
+            hits
 
           else {
 
-            val x = generateArgs(rndX, tuple2.tail: _*)
-            val y = generateArgs(rndX, tuple2.head).head
+            val y = generateArgs(rndY, (empiricBorders._1, empiricBorders._2)).head
+            val x = generateArgs(rndX, tuple2: _*)
 
-            val fv /*function value*/ = func(x)
+
+            val fv = func(x)
 
             simulation(
               hits +
@@ -99,48 +164,28 @@ object HT_4_ObjectAutoBorders{
                 if (y < 0 && y > fv ) -1
                 else 0
                 ),
-              pointsGenerated + 1,
-              math.min(fv, detectedMin),
-              math.max(fv, detectedMax)
+              pointsGenerated + 1
             )
 
           }
         }
 
-        val hitsCounted = simulation(0, 0, Double.MaxValue, Double.MinValue)
-      (hitsCounted._1, hitsCounted._2, hitsCounted._3)
-      }
-
+        val hitsCounted = simulation(0, 0)
+      hitsCounted
   }
 
 
-
-/*
-  def piPar(totalNumberOfPoints:Int) = {
-
-
-    val ((pi1, pi2), (pi3, pi4)) =
-
-      parallel(
-        parallel(
-          countPointsInsideCircle(totalNumberOfPoints/4), countPointsInsideCircle(totalNumberOfPoints/4)
-        ),
-        parallel(
-          countPointsInsideCircle(totalNumberOfPoints/4), countPointsInsideCircle(totalNumberOfPoints/4)
-        )
-      )
-
-    4.0 * (pi1 + pi2 + pi3 + pi4) /totalNumberOfPoints
-  }
-
-
-  def piParOptimalThreadsNumber(totalNumberOfPoints:Int):Double = {
+  def integralOptimalThreadsNumber(func: (Seq[Double]) => Double,
+                                   totalNumberOfPoints:Int,
+                                   tuple2: Tuple2[Double, Double]*):Double = {
 
     val optimalTaskSize = totalNumberOfPoints / Runtime.getRuntime.availableProcessors()
 
+    val (empMin:Double, empMax:Double) = HeatMinMax(func, totalNumberOfPoints, tuple2)
+
     def splitTaskSize(taskSize:Int):Int ={
       if (taskSize <= optimalTaskSize)
-        countPointsInsideCircle(taskSize)
+        countPointsUnderIntegral(func, taskSize,(empMin, empMax), tuple2:_* )
       else {
         val (r1, r2) = parallel(
           splitTaskSize(taskSize/ 2),
@@ -150,39 +195,20 @@ object HT_4_ObjectAutoBorders{
       }
     }
 
-    splitTaskSize(totalNumberOfPoints) * 4.0 / totalNumberOfPoints
+
+    val rez_size = getSizeOfBox(tuple2:_*) * (empMax - empMin)
+
+    splitTaskSize(totalNumberOfPoints).toDouble / totalNumberOfPoints.toDouble * rez_size
   }
-*/
 
-  //  def pNorm(a: Array[Int], p: Double): Int = power(sumSegment(a, p, 0, a.length), 1/p ) ;
 
-  // def pNormParallel(a: Array[Int], p: Double): Int = power(sumSegmentPar(a, p, 0, a.length), 1/p ) ;
 
   def sinFunc(arg:Double*):Double = math.sin(arg.head)
 
   def main(args: Array[String]): Unit = {
 
-    val totalNumberOfPoints = 1000000
+    val totalNumberOfPoints = 100000
 
-
-    val boxSize = getSizeOfSampleSpace((0 , math.Pi/2), (-1, 1), (0, 2))
-    println(boxSize)
-
-    val sizeArray = toSizesArray((0.0 , math.Pi/2), (-1.0, 1.0), (0.0, 2.0))
-
-    println(sizeArray)
-
-    val check = argumentsAreValid((0 , math.Pi/2), (-1, 1), (0, 2))
-
-    println(check)
-
-    val check2 = argumentsAreValid((0 , math.Pi/2), (-1, -31), (0, 2))
-
-    println(check2)
-
-    val begArr = toStartOffsetsArr((0 , math.Pi/2), (-1, -31), (0, 2))
-
-    println(begArr)
 
     val fSin:  (Seq[Double]) => Double = (x) => {math.sin(x.head)}
     val fCos:  (Seq[Double]) => Double = (x) => {math.cos(x.head)}
@@ -191,26 +217,13 @@ object HT_4_ObjectAutoBorders{
     val fprodOfTwo: (Seq[Double]) => Double = (x) => {x.head * x.tail.head}
 
 
-    println( sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
+    println( sequentialIntegral( fSumofTwo , totalNumberOfPoints,  (0 , 1), (0, 1)) )
 
-    println( sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(-math.Pi/2 , math.Pi/2)) )
-
-    println( sequentialIntegral( fSin , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
-
-    println( sequentialIntegral( fCos, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
-
-    println( sequentialIntegral( fCos, totalNumberOfPoints, (-1.0, 1.0),(-math.Pi/2 , math.Pi/2)) )
-
-    println( sequentialIntegral( fCos , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
-
-    println( sequentialIntegral( fSumofTwo , totalNumberOfPoints, (0, 2.0), (0 , 1), (0, 1)) )
-
-    println( sequentialIntegral( fprodOfTwo , totalNumberOfPoints, (0, 1.0), (0 , 1), (0, 1)) )
-
-    // println( sequentialIntegral( fSin , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
+    println( sequentialIntegral( fprodOfTwo , totalNumberOfPoints,  (0 , 1), (0, 1)) )
 
 
-    /*
+
+
     val standartConfig = config(
       Key.exec.minWarmupRuns -> 100,
       Key.exec.maxWarmupRuns -> 500,
@@ -218,31 +231,22 @@ object HT_4_ObjectAutoBorders{
       Key.verbose -> true
     ) withWarmer(new Warmer.Default)
 
-    val seqSin = standartConfig measure {
-      sinSeq(-math.Pi/2 , math.Pi/2, -1.0, 1.0, totalNumberOfPoints)
+    val seqIntegral = standartConfig measure {
+      sequentialIntegral( fSin, totalNumberOfPoints,(0 , math.Pi/2))
     }
 
 
-    println(s"sinConsCount $seqSin")
-    //println(s"PiCountPar $ParPi")
+    println(s"sinConsCount $seqIntegral")
+    val ParIntegral = standartConfig measure {
+      integralOptimalThreadsNumber( fSin, totalNumberOfPoints, (0 , math.Pi/2))
+    }
 
 
-        val ParPi = standartConfig measure {
-          piPar(totalNumberOfPoints)
-        }
+    println(s"PiSecCount $seqIntegral")
+    println(s"PiCountPar $ParIntegral")
 
-        val ParPiOptThreadsN = standartConfig measure {
-          piParOptimalThreadsNumber(totalNumberOfPoints)
-        }
+    println(s"speedRatio1vs2 ${seqIntegral.value/ParIntegral.value}")
 
-        println(s"PiSecCount $seqPi")
-        println(s"PiCountPar $ParPi")
-        println(s"PiCountPar $ParPiOptThreadsN")
-
-        println(s"speedRatio1vs2 ${seqPi.value/ParPi.value}")
-        println(s"speedRatio2vs3 ${ParPi.value/ParPiOptThreadsN.value}")
-
-    */
   }
 
 }

@@ -181,12 +181,9 @@ object HT_4_Object{
       sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2))
     }
 
-    //println(s"PiCountPar $ParPi")
-
-
-        val ParIntegral = standartConfig measure {
-          integralOptimalThreadsNumber( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2))
-        }
+    val ParIntegral = standartConfig measure {
+      integralOptimalThreadsNumber( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2))
+    }
 
 
         println(s"PiSecCount $seqIntegral")

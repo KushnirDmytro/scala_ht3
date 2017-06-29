@@ -1,138 +1,173 @@
 package HW_5
 
+import HT_4.HT_4_Object.integralOptimalThreadsNumber
 import com.sun.javaws.exceptions.InvalidArgumentException
 import org.scalameter._
 
+import scala.io.Source
 import scala.util.Random
 
 /**
   * Created by d1md1m on 19.05.17.
   */
-object HT_5_Object{
+object HT_5{
 
-
-  def sequentialIntegral(func: (Seq[Double]) => Double,
-                          totalNumberOfPoints:Int,
-                         tuple2: Tuple2[Double, Double]*): Double = {
-    val boxSize = getSizeOfBox(tuple2:_*)
-
-    val hits = countPointsUnderIntegral(func,
-      totalNumberOfPoints,
-    tuple2)
-
-    hits.toDouble / totalNumberOfPoints * boxSize
+  trait Monoid[A]{
+    def op(x:A, y:A):A
+    def zero:A
   }
 
-  def getSizeOfBox(tuple2: (Double, Double)*):Double = {
-    tuple2.foldLeft(1.0)((acc, elem) => acc * (elem._2 - elem._1))
+  val stringMonoid = new Monoid[String] {
+    def op(x:String, y:String): String = x+y
+    def zero = ""
   }
 
-  def argumentsAreValid(tuple2: (Double, Double)*):Boolean = {
-    val sizeCheck = tuple2.nonEmpty
-    val pairwiseCheck = tuple2.foldLeft(true)( (acc, el) => acc && (el._2 > el._1) )
-    sizeCheck && pairwiseCheck
+  def listMonoid[A] = new Monoid[List[A]] {
+    def op(x:List[A], y:List[A]): List[A] = x++y
+    def zero = Nil
   }
 
-  def toSizesArray(
-                    tuple2:(Double, Double)*
-                  ) : Seq[Double] = {
-    tuple2.map ( el => el._2 - el._1 )
+  val intUnderAddition = new Monoid[Int] {
+    def op(x:Int, y:Int): Int = x+y
+    def zero = 0
+  }
+  val intUnderMultiplication = new Monoid[Int] {
+    def op(x:Int, y:Int): Int = x*y
+    def zero = 1
+  }
+  val booleanUnderConjunction = new Monoid[Boolean] {
+    def op(x:Boolean, y:Boolean): Boolean = x&&y
+    def zero = true
+  }
+  val booleanUnderDisjunction = new Monoid[Boolean] {
+    def op(x:Boolean, y:Boolean): Boolean = x||y
+    def zero = false
   }
 
-  def toStartOffsetsArr(
-    tuple2:(Double, Double)* ) : Seq[Double] = {
-    tuple2.map ( el => el._1 )
-  }
-
-
-
-  def generateArgs(random: Random, tuple2: (Double, Double)*):Seq[(Double)] = {
-    tuple2.map(el => random.nextDouble() * (el._2 - el._1) + el._1 )
+  def endofunMonoid[A] = new Monoid[A=>A]  {
+    def op(f:A=>A, g:A=>A):A=>A = (x: A) => f(g(x):A):A
+    def zero: (A) => A = (x:A)=>x //identity mapping
   }
 
 
-  def countPointsUnderIntegral(func: (Seq[Double]) => Double,
-                               totalNumberOfPoints:Int,
-                               tuple2: Seq[(Double, Double)]
-                               ):Int ={
+  //TODO ask how to save signature
+  //
+  //  def endofunMonoid[A] :  Monoid[A=>A] = {
+  //    def op(f:A=>A, g:A=>A):A=>A = (x: A) => f(g(x):A):A
+  //    def zero: (A) => A = (x:A)=>x //identity mapping
+  //  }
 
 
-    if( !argumentsAreValid(tuple2: _ *) )
-      throw new InvalidArgumentException(Array("Integration limits fail"))
+
+  def foldMapBalanced [ A, B ] ( xs : IndexedSeq [A] , m: Monoid [ B ] )
+                               ( f : A => B ) : B =
+    if ( xs . length == 0 )
+      m. zero
+    else if ( xs . length == 1 )
+      f ( xs ( 0 ) )
     else {
+      val ( l , r ) = xs . splitAt ( xs . length/2 )
+      m. op ( foldMapBalanced ( l , m) ( f ) ,
+        foldMapBalanced ( r , m) ( f ) )
+    }
 
-        val rndX = new Random
-        val rndY = new Random
+  //Use foldMap or foldMapBalanced to determine if an
+  //instance of IndexedSeq[Int] is ordered (ascending or
+  //  descending).
 
-      def simulation(hits: Int,
-                       pointsGenerated: Int): Int = {
 
-          if (pointsGenerated >= totalNumberOfPoints)
-            hits
 
-          else {
-
-            val x = generateArgs(rndX, tuple2.tail: _*)
-            val y = generateArgs(rndX, tuple2.head).head
-
-            val fv /*function value*/ = func(x)
-
-            simulation(
-              hits +
-                (if
-              (y > 0 && y < fv )
-                1
-              else if
-              (y < 0 && y > fv )
-                -1
-                else
-                0
-                ),
-              pointsGenerated + 1
-            )
-
-          }
-        }
-
-        val hitsCounted = simulation(0, 0)
-      hitsCounted
-      }
-
+  val isAccendingMonoid = new Monoid[(Int, Int, Boolean)] {
+    def op( x:(Int, Int, Boolean), y:(Int, Int, Boolean) ):(Int, Int, Boolean) =
+      (math.min(x._1, y._1), math.max(x._2, y._2), x._2 < y._1 )
+    def zero: (Int, Int, Boolean) = (Int.MaxValue, Int.MinValue, true)
   }
 
 
+  def isOrderedAscending (arg: IndexedSeq[Int]) = {
+    foldMapBalanced(arg, isAccendingMonoid)( (el:Int) => (el, el , true)  )
+  }
 
-  def integralOptimalThreadsNumber(func: (Seq[Double]) => Double,
-                                      totalNumberOfPoints:Int,
-                                      tuple2: Tuple2[Double, Double]*):Double = {
+  val numList1 = IndexedSeq(-1,2,3, 23)
+  val numList2 = IndexedSeq(5,2,4,7)
 
-    val optimalTaskSize = totalNumberOfPoints / Runtime.getRuntime.availableProcessors()
+  val rez1 = isOrderedAscending(numList1)
+  val rez2 = isOrderedAscending(numList2)
 
-    def splitTaskSize(taskSize:Int):Int ={
-      if (taskSize <= optimalTaskSize)
-        countPointsUnderIntegral(func, taskSize ,tuple2)
-      else {
-        val (r1, r2) = parallel(
-          splitTaskSize(taskSize/ 2),
-          splitTaskSize(taskSize / 2)
-        )
-        r1 + r2
+  // =================================== PARALLEL FOLDING ==============
+
+
+
+  def foldPar [A] ( xs : IndexedSeq [A] ,
+                    from : Int , to : Int , m: Monoid [A] )
+                  ( implicit threshholdSize : Int ) : A =
+    if ( to - from < threshholdSize)
+      foldSegment ( xs , from , to , m)
+    else {
+      val middle = from + ( to -from ) / 2
+      val ( l , r ) = parallel(
+        foldPar ( xs , from , middle , m) ( threshholdSize ) ,
+        foldPar ( xs , middle , to , m) ( threshholdSize ) )
+      m. op ( l , r )
+    }
+
+  def foldSegment [A ] ( xs : IndexedSeq [A] ,
+                         from : Int , to : Int , m: Monoid [A ] ) : A = {
+    var res = xs ( from )
+    var index = from + 1
+    while ( index < to ) {
+      res = m. op ( res , xs ( index ) )
+      index = index + 1
+    }
+    res
+  }
+
+
+  def foldMapPar [ A, B ] ( xs : IndexedSeq [A] ,
+                            from : Int , to : Int , m: Monoid [B] )
+                          ( f : A => B)
+                          ( implicit threshholdSize : Int ) : B =
+    if ( to - from <= threshholdSize)
+      foldMapSegment ( xs , from , to , m)(f)
+    else {
+      val middle = from + ( to -from ) / 2
+      val ( l , r ) = parallel(
+        foldMapPar ( xs , from , middle , m)(f) ( threshholdSize ) ,
+        foldMapPar ( xs , middle , to , m)(f) ( threshholdSize ) )
+      m. op ( l , r )
+    }
+
+
+  def foldMapSegment [ A, B ] ( xs : IndexedSeq [A] ,
+                                from : Int , to : Int , m: Monoid [B] )
+                              ( f : A => B ): B =
+  {
+    var res =  f ( xs ( from ) )
+    var index = from + 1
+    while ( index < to ) {
+      res = m. op ( res , f(xs ( index )) )
+      index = index + 1
+    }
+    res
+  }
+
+
+  def power (base:Int, power:Int):Int = {
+
+    def powerStep(rez:Int, powerLeft:Int):Int = {
+      if (powerLeft >= 1) {
+        powerStep(rez*base, powerLeft-1)
+      }else{
+        rez
       }
     }
 
-    val rez = splitTaskSize(totalNumberOfPoints)
-   // println(s"parralel hits $rez")
-
-    val rez_size = getSizeOfBox(tuple2:_*)
-    //println(s"parralel rezSize $rez_size")
-
-
-    rez.toDouble / totalNumberOfPoints.toDouble * rez_size
+    powerStep(1,power)
   }
 
 
 
-  def sinFunc(arg:Double*):Double = math.sin(arg.head)
+
 
   def main(args: Array[String]): Unit = {
 
@@ -147,50 +182,123 @@ object HT_5_Object{
     val fprodOfTwo: (Seq[Double]) => Double = (x) => {x.head * x.tail.head}
 
 
-    println("seq")
-    println( sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
 
-    println("parall")
-    println( integralOptimalThreadsNumber( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
-/*
-    println( sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(-math.Pi/2 , math.Pi/2)) )
+//
+//    val standartConfig = config(
+//      Key.exec.minWarmupRuns -> 100,
+//      Key.exec.maxWarmupRuns -> 500,
+//      Key.exec.benchRuns -> 100,
+//      Key.verbose -> true
+//    ) withWarmer(new Warmer.Default)
+//
+//
+//    val rnd = new Random
+//    val length = 100000
+//    val source = ( 0 until length ) .
+//      map( _ * rnd.nextInt( ) ).toVector
+//
+//    val sourceArr = ( 0 until length ) .
+//      map( _ * rnd.nextInt( ) ).toArray
+//
+//    implicit val threshhold = 1000
+//    val monoid = new Monoid [ Int ] {
+//      def op ( x : Int , y : Int ): Int = x + y
+//      def zero = 0
+//    }
+//
+//    val foldMapRezArr = standartConfig measure {
+//      foldMapPar ( source ,
+//        0 , sourceArr . length ,
+//        monoid ) ( power ( _ , 2 ) )
+//    }
+//
+//    val foldMapRezVec = standartConfig measure {
+//      foldMapPar ( source ,
+//        0 , source . length ,
+//        monoid ) ( power ( _ , 2 ) )
+//    }
+//
+//
+//    println(s"foldmapReztWithVector $foldMapRezVec")
+//
+//    println(s"foldmapReztWithArray $foldMapRezArr")
 
-    println( sequentialIntegral( fSin , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
 
-    println( sequentialIntegral( fCos, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2)))
+    case class wordCountMon (pref:Boolean, body:Int, postf:Boolean)
 
-    println( sequentialIntegral( fCos, totalNumberOfPoints, (-1.0, 1.0),(-math.Pi/2 , math.Pi/2)) )
+    type wordCountMonScalar = (Int, Int, Int)
 
-    println( sequentialIntegral( fCos , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
 
-    println( sequentialIntegral( fSumofTwo , totalNumberOfPoints, (0, 2.0), (0 , 1), (0, 1)) )
-
-    println( sequentialIntegral( fprodOfTwo , totalNumberOfPoints, (0, 1.0), (0 , 1), (0, 1)) )
-
-    // println( sequentialIntegral( fSin , totalNumberOfPoints, (-1.0, 1.0), (-math.Pi/2 , 0)) )
-*/
-
-    val standartConfig = config(
-      Key.exec.minWarmupRuns -> 100,
-      Key.exec.maxWarmupRuns -> 500,
-      Key.exec.benchRuns -> 100,
-      Key.verbose -> true
-    ) withWarmer(new Warmer.Default)
-
-    val seqIntegral = standartConfig measure {
-      sequentialIntegral( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2))
+    val WordsCoutMono = new Monoid[wordCountMon]  {
+      def op(left:wordCountMon, right:wordCountMon):wordCountMon =
+        wordCountMon(left.pref, left.body+right.body, right.postf)
+        def zero: wordCountMon = wordCountMon(pref = false,0,postf = false) //identity mapping
     }
 
-    val ParIntegral = standartConfig measure {
-      integralOptimalThreadsNumber( fSin, totalNumberOfPoints, (-1.0, 1.0),(0 , math.Pi/2))
+    def stringToMono(st:String):wordCountMon = {
+      implicit def bool2int(b:Boolean): Int = if (b) 1 else 0
+      val wordEndPattern = "[A-Za-z][^A-Za-z]".r
+      //val wordPattern = "[A-Za-z]".r
+      val count = wordEndPattern.findAllIn(st).length //body
+      //wordPattern.findFirstMatchIn(st) //first
+      val buf_end = st.last.isLetter
+      val buf_start = st.head.isLetter
+
+      wordCountMon(st.head.isLetter,
+        wordEndPattern.findAllIn(st).length,
+        st.last.isLetter
+      )
     }
 
 
-        println(s"PiSecCount $seqIntegral")
-        println(s"PiCountPar $ParIntegral")
 
-        println(s"speedRatio1vs2 ${seqIntegral.value/ParIntegral.value}")
+    val bufferedSource = Source.fromFile( "/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt" )
+    //val bufferedSource = Source.fromFile( " /home/d1md1m/Desktop/10-lecture/big.txt" )
 
+
+    def foldMapSegment [ A, B ] ( xs : IndexedSeq [A] ,
+                                  from : Int , to : Int , m: Monoid [B] )
+                                ( f : A => B ): B =
+    {
+      var res =  f ( xs ( from ) )
+      var index = from + 1
+      while ( index < to ) {
+        res = m. op ( res , f(xs ( index )) )
+        index = index + 1
+      }
+      res
+    }
+
+
+
+
+    val chunksNumberInPortion = 100
+    val chunkLength = 100
+
+    bufferedSource.bufferedReader()
+
+    def bufLine:Array[String] = new Array[String](chunksNumberInPortion)
+
+
+
+    val range1_10 = 1 to 10
+
+
+    while (bufferedSource.hasNext) {
+      while (bufferedSource.hasNext)
+
+      for (line <- bufferedSource.getLines()) {
+
+        val mono = stringToMono(line)
+        println(mono)
+        println(line)
+      }
+    }
+
+
+
+    println(bufferedSource)
+    bufferedSource . close
 
   }
 

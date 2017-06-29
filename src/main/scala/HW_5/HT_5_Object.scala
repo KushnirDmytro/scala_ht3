@@ -208,25 +208,47 @@ object HT_5 {
         mon.body
     }
 
- val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/lines50.txt").getLines.toArray
-    //val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/big.txt").getLines.toArray
-    //val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt").getLines.toArray
 
+    val filename = "/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/singleLaneFile.txt"
+//    val filename = "/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/big.txt"
+//    val filename = "/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt"
+
+
+ // ======================= OLD VERSION ================
+ //   val lines = Source.fromFile(filename).getLines.toArray
+    // ======================= OLD VERSION ================
+
+
+    //=======================NEW CODE====================
+    val PredefinedMaxChunkSize = 100
+    val bufferedSourse = Source.fromFile(filename)
+    val singleChunkText = try bufferedSourse.mkString finally bufferedSourse.close()
+    val len:Int = singleChunkText.length
+    def SplitOnChunks(listBuffer:List[String], from:Int): List[String] ={
+      if (len - from > PredefinedMaxChunkSize)
+        SplitOnChunks(listBuffer :+ singleChunkText.slice(from, from + PredefinedMaxChunkSize),
+          from+PredefinedMaxChunkSize)
+      else listBuffer :+ singleChunkText.slice(from, len)
+    }
+    val lines = SplitOnChunks(List.empty[String] ,0).toArray
+    //=======================NEW CODE====================
+
+    println(s"got lines ${lines.length}")
 
     def rez = foldMapSegment(lines, 0, lines.length, WordsCoutMono)(stringToMono)
 
     println(unpack_monoid(rez))
 
-    def rez_par = foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(200)
+    def rez_par = foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(singleChunkText.length/5)
 
     println(unpack_monoid(rez_par))
 
 
 
         val standartConfig = config(
-          Key.exec.minWarmupRuns -> 5,
-          Key.exec.maxWarmupRuns -> 10,
-          Key.exec.benchRuns -> 10,
+          Key.exec.minWarmupRuns -> 50,
+          Key.exec.maxWarmupRuns -> 100,
+          Key.exec.benchRuns -> 100,
           Key.verbose -> true
         ) withWarmer(new Warmer.Default)
 
@@ -236,13 +258,13 @@ object HT_5 {
         }
 
         val foldMapParrallelArr = standartConfig measure {
-          foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(20)
+          foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(singleChunkText.length/5)
         }
 
 
-        println(s"foldmapReztWithVector $foldMapSequentialRezArr")
+        println(s"foldmapReztWithSeq $foldMapSequentialRezArr")
 
-        println(s"foldmapReztWithArray $foldMapParrallelArr")
+        println(s"foldmapReztWithParallel $foldMapParrallelArr")
 
     println(s"seq / par ${foldMapSequentialRezArr.value/foldMapParrallelArr.value}")
 

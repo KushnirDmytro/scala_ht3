@@ -193,15 +193,7 @@ object HT_5 {
         WordsCoutMono.zero
       }
       else {
-        implicit def bool2int(b: Boolean): Int = if (b) 1 else 0
-
         val wordEndPattern = "[A-Za-z][^A-Za-z]".r
-        //val wordPattern = "[A-Za-z]".r
-        val count = wordEndPattern.findAllIn(st).length //body
-        //wordPattern.findFirstMatchIn(st) //first
-        val buf_end = st.last.isLetter
-        val buf_start = st.head.isLetter
-
         wordCountMon(st.head.isLetter,
           wordEndPattern.findAllIn(st).length,
           st.last.isLetter
@@ -216,12 +208,7 @@ object HT_5 {
         mon.body
     }
 
-
-    //val bufferedSource = Source.fromFile( "/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt" )
-    //    val bufferedSource = Source.fromFile( "/home/d1md1m/Desktop/10-lecture/big.txt" )
-    //val bufferedSource = Source.fromFile( "/home/d1md1m/Desktop/10-lecture/lines50.txt" )
-
-    val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/lines50.txt").getLines.toArray
+ val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/lines50.txt").getLines.toArray
     //val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/big.txt").getLines.toArray
     //val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt").getLines.toArray
 
@@ -233,7 +220,6 @@ object HT_5 {
     def rez_par = foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(200)
 
     println(unpack_monoid(rez_par))
-
 
 
 
@@ -260,66 +246,6 @@ object HT_5 {
 
     println(s"seq / par ${foldMapSequentialRezArr.value/foldMapParrallelArr.value}")
 
-
-
-
-    //
-//
-//    def foldMapPar[A, B](xs: IndexedSeq[A],
-//                         from: Int, to: Int, m: Monoid[B])
-//                        (f: A => B)
-//                        (implicit threshholdSize: Int): B =
-//      if (to - from <= threshholdSize)
-//        foldMapSegment(xs, from, to, m)(f)
-//      else {
-//        val middle = from + (to - from) / 2
-//        val (l, r) = parallel(
-//          foldMapPar(xs, from, middle, m)(f)(threshholdSize),
-//          foldMapPar(xs, middle, to, m)(f)(threshholdSize))
-//        m.op(l, r)
-//      }
-//
-//
-//    def foldMapSegment[A, B](xs: IndexedSeq[A],
-//                             from: Int, to: Int, m: Monoid[B])
-//                            (f: A => B): B = {
-//      var res = f(xs(from))
-//      var index = from + 1
-//      while (index < to) {
-//        res = m.op(res, f(xs(index)))
-//        index = index + 1
-//      }
-//      res
-//    }
-
-
-
-    //   bufferedSource.bufferedReader()
-
-
-    //    val range1_10 = 1 to 10
-    //
-    //    var vector:Vector[String] =
-    //
-    //    while (bufferedSource.hasNext) {
-    //
-    //      for (line <- bufferedSource.getLines()) {
-    //
-    //
-    //        val mono = stringToMono(line)
-    //        println(mono)
-    //        println(line)
-    //      }
-    //
-
-    //}
-
-
-    //
-    //    println(bufferedSource)
-    //    bufferedSource . close
-
-    //}
 
   }
 }

@@ -237,8 +237,10 @@ object HT_5 {
 
     val WordsCoutMono = new Monoid[wordCountMon] {
       def op(left: wordCountMon, right: wordCountMon): wordCountMon =
+      if ( (left.postf && right.pref) || (left.postf && right.pref && right.body > 0))
+        wordCountMon(left.pref, left.body + right.body + 1, right.postf)
+      else
         wordCountMon(left.pref, left.body + right.body, right.postf)
-
       def zero: wordCountMon = wordCountMon(pref = false, 0, postf = false) //identity mapping
     }
 
@@ -263,34 +265,38 @@ object HT_5 {
       }
     }
 
+    def unpack_monoid(mon: wordCountMon): Int = {
+      if (mon.postf)
+        mon.body+1
+      else
+        mon.body
+    }
+
 
     //val bufferedSource = Source.fromFile( "/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt" )
     //    val bufferedSource = Source.fromFile( "/home/d1md1m/Desktop/10-lecture/big.txt" )
     //val bufferedSource = Source.fromFile( "/home/d1md1m/Desktop/10-lecture/lines50.txt" )
 
-    //val lines = Source.fromFile("/home/d1md1m/Desktop/10-lecture/lines50.txt").getLines.toArray
-    val lines = Source.fromFile("/home/d1md1m/Desktop/10-lecture/big.txt").getLines.toArray
+    val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/lines50.txt").getLines.toArray
+    //val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/big.txt").getLines.toArray
+    //val lines = Source.fromFile("/home/d1md1m/SCALA_FP/Lec8/HT_3_andFriends_Kushnir_D/src/main/scala/HW_5/text.txt").getLines.toArray
 
-
-
-    val chunksNumberInPortion = 100
-    val chunkLength = 100
 
     def rez = foldMapSegment(lines, 0, lines.length, WordsCoutMono)(stringToMono)
 
-    println(rez)
+    println(unpack_monoid(rez))
 
-    def rez_par = foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(20)
+    def rez_par = foldMapPar(lines, 0, lines.length, WordsCoutMono)(stringToMono)(200)
 
-    println(rez_par)
+    println(unpack_monoid(rez_par))
 
 
 
 
         val standartConfig = config(
-          Key.exec.minWarmupRuns -> 100,
-          Key.exec.maxWarmupRuns -> 300,
-          Key.exec.benchRuns -> 100,
+          Key.exec.minWarmupRuns -> 5,
+          Key.exec.maxWarmupRuns -> 10,
+          Key.exec.benchRuns -> 10,
           Key.verbose -> true
         ) withWarmer(new Warmer.Default)
 

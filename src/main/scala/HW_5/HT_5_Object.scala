@@ -174,62 +174,6 @@ object HT_5 {
   def main(args: Array[String]): Unit = {
 
 
-    val fSin: (Seq[Double]) => Double = (x) => {
-      math.sin(x.head)
-    }
-    val fCos: (Seq[Double]) => Double = (x) => {
-      math.cos(x.head)
-    }
-
-    val fSumofTwo: (Seq[Double]) => Double = (x) => {
-      x.head + x.tail.head
-    }
-    val fprodOfTwo: (Seq[Double]) => Double = (x) => {
-      x.head * x.tail.head
-    }
-
-
-    //
-    //    val standartConfig = config(
-    //      Key.exec.minWarmupRuns -> 100,
-    //      Key.exec.maxWarmupRuns -> 500,
-    //      Key.exec.benchRuns -> 100,
-    //      Key.verbose -> true
-    //    ) withWarmer(new Warmer.Default)
-    //
-    //
-    //    val rnd = new Random
-    //    val length = 100000
-    //    val source = ( 0 until length ) .
-    //      map( _ * rnd.nextInt( ) ).toVector
-    //
-    //    val sourceArr = ( 0 until length ) .
-    //      map( _ * rnd.nextInt( ) ).toArray
-    //
-    //    implicit val threshhold = 1000
-    //    val monoid = new Monoid [ Int ] {
-    //      def op ( x : Int , y : Int ): Int = x + y
-    //      def zero = 0
-    //    }
-    //
-    //    val foldMapRezArr = standartConfig measure {
-    //      foldMapPar ( source ,
-    //        0 , sourceArr . length ,
-    //        monoid ) ( power ( _ , 2 ) )
-    //    }
-    //
-    //    val foldMapRezVec = standartConfig measure {
-    //      foldMapPar ( source ,
-    //        0 , source . length ,
-    //        monoid ) ( power ( _ , 2 ) )
-    //    }
-    //
-    //
-    //    println(s"foldmapReztWithVector $foldMapRezVec")
-    //
-    //    println(s"foldmapReztWithArray $foldMapRezArr")
-
-
     case class wordCountMon(pref: Boolean, body: Int, postf: Boolean)
 
     type wordCountMonScalar = (Int, Int, Int)
